@@ -219,7 +219,15 @@ export default function ManagementPortalLogin() {
                         <Fingerprint className="w-8 h-8 text-emerald-400" />
                       </div>
                       <p className="text-white font-semibold text-lg">Two-Factor Authentication</p>
-                      <p className="text-gray-500 text-sm mt-1">Enter the 6-digit code from your authenticator app or SMS.</p>
+                      <p className="text-gray-500 text-sm mt-1">Enter any 6-digit code to continue (demo mode).</p>
+                    </div>
+
+                    {/* Demo Mode Notice */}
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                      <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+                      <p className="text-xs text-amber-300">
+                        <span className="font-semibold">Demo Mode:</span> Enter any 6 digits (e.g., 123456) to proceed.
+                      </p>
                     </div>
 
                     {error && (
@@ -239,13 +247,13 @@ export default function ManagementPortalLogin() {
                       <Input
                         type="text"
                         inputMode="numeric"
-                        placeholder="000 000"
+                        placeholder="123456"
                         value={tfaCode.replace(/(\d{3})(\d{1,3})/, "$1 $2")}
                         onChange={e => setTfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                         className="h-14 text-center text-2xl tracking-[0.4em] font-mono bg-[#0a0a0a] border-[#2a2a2a] text-white placeholder:text-gray-700 focus:border-emerald-500 rounded-xl"
                         maxLength={7}
                       />
-                      <p className="text-xs text-gray-600 text-center">Code expires in 5:00 minutes</p>
+                      <p className="text-xs text-emerald-400 text-center">Enter any 6 digits to continue</p>
                     </div>
 
                     <Button type="submit" disabled={isLoading || tfaCode.length < 6}
@@ -259,7 +267,6 @@ export default function ManagementPortalLogin() {
                       <button type="button" onClick={() => setStep("credentials")} className="text-gray-500 hover:text-white transition-colors">
                         Back to login
                       </button>
-                      <button type="button" className="text-emerald-400 hover:underline">Resend code</button>
                     </div>
                   </motion.form>
                 )}

@@ -1,0 +1,382 @@
+const rideTypes = [
+  { name: 'Economy', eta: '3 min', price: '$14.50', desc: 'Affordable everyday rides' },
+  { name: 'Comfort', eta: '5 min', price: '$19.75', desc: 'Extra space and premium comfort' },
+  { name: 'XL', eta: '6 min', price: '$27.90', desc: 'For groups and airport luggage' },
+  { name: 'Priority', eta: '2 min', price: '$23.50', desc: 'Fastest pickup available' },
+];
+
+const pillars = [
+  {
+    title: 'Comfort',
+    desc: 'Smooth rides designed for peace and a premium travel experience.',
+  },
+  {
+    title: 'Safety',
+    desc: 'Calm, controlled travel with verified drivers and protected communication.',
+  },
+  {
+    title: 'Efficiency',
+    desc: 'Quick pickup, smart dispatch, and no-delay route optimization.',
+  },
+  {
+    title: 'Trust',
+    desc: 'Reliable service, transparent pricing, and professional support.',
+  },
+];
+
+const stats = [
+  ['Average pickup', '4 min'],
+  ['Driver rating', '4.9/5'],
+  ['Support', '24/7'],
+  ['Business rides', 'Available'],
+];
+
+const contactEmail = 'support@glidewayride.com';
+
+export default function HomePage() {
+  return (
+    <main>
+      <header className="site-header">
+        <div className="container nav-row">
+          <div className="brand-wrap">
+            <div className="brand-mark">G</div>
+            <div>
+              <div className="brand-name">GlideWay</div>
+              <div className="brand-sub">www.glidewayride.com</div>
+            </div>
+          </div>
+          <nav className="nav-links">
+            <a href="#home">Home</a>
+            <a href="#book">Book</a>
+            <a href="#features">Features</a>
+            <a href="#about">About</a>
+            <a href="#auth">Login / Register</a>
+            <a href="#contact">Contact</a>
+          </nav>
+          <div className="nav-actions">
+            <a className="btn btn-outline" href="#auth">Login</a>
+            <a className="btn btn-dark" href="#auth">Register</a>
+          </div>
+        </div>
+      </header>
+
+      <section className="hero" id="home">
+        <div className="container hero-grid">
+          <div>
+            <div className="pill">Premium Ride Platform</div>
+            <h1>
+              Glide<span>Way</span>
+            </h1>
+            <p className="hero-tagline">Ride Smoothly, Glide Easily</p>
+            <p className="hero-copy">
+              Move with peace. Ride with purpose. Smooth rides. Trusted journeys. Where every ride flows.
+            </p>
+            <p className="hero-copy muted">
+              Welcome to <strong>www.glidewayride.com</strong> — a beautiful and professional transportation platform built for comfort, safety, efficiency, and trust.
+            </p>
+            <div className="hero-actions">
+              <a className="btn btn-gold" href="#book">Book a Ride</a>
+              <a className="btn btn-ghost" href="#features">Drive with GlideWay</a>
+            </div>
+            <div className="stats-grid">
+              {stats.map(([label, value]) => (
+                <div className="stat-card" key={label}>
+                  <div className="stat-label">{label}</div>
+                  <div className="stat-value">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="phone-shell">
+            <div className="phone-screen">
+              <div className="phone-top">
+                <span>9:41</span>
+                <span className="live-chip">Live GPS</span>
+              </div>
+              <div className="phone-brand">
+                <div className="brand-mark brand-mark-large">G</div>
+                <div>
+                  <div className="phone-brand-title">GlideWay</div>
+                  <div className="phone-brand-sub">Ride Smoothly, Glide Easily</div>
+                </div>
+              </div>
+              <div className="card dark-card">
+                <div className="card-kicker">Book a ride</div>
+                <div className="location-box">Airport Terminal A</div>
+                <div className="location-box">Downtown Marriott Hotel</div>
+                <div className="fare-box">
+                  <div>
+                    <div className="card-kicker dark">Priority ride</div>
+                    <div className="fare-price">$23.50</div>
+                  </div>
+                  <div>2 min away</div>
+                </div>
+              </div>
+              <div className="quick-actions">
+                <div className="quick-card">Safe</div>
+                <div className="quick-card">Call</div>
+                <div className="quick-card">Chat</div>
+              </div>
+              <div className="driver-card">
+                <div>
+                  <div className="card-kicker">Driver arriving</div>
+                  <div className="driver-name">Daniel M.</div>
+                  <div className="driver-meta">Toyota Camry • RDX-204</div>
+                </div>
+                <div className="driver-eta">3 min</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="book">
+        <div className="container two-col">
+          <div className="card white-card big-card">
+            <h2>Book your ride in seconds</h2>
+            <p className="section-text">Easy booking with live estimate, premium ride choices, and secure checkout</p>
+            <div className="input-grid">
+              <div>
+                <label>Pickup location</label>
+                <input defaultValue="Airport Terminal A" />
+              </div>
+              <div>
+                <label>Drop-off location</label>
+                <input defaultValue="Downtown Marriott Hotel" />
+              </div>
+            </div>
+            <div className="ride-list">
+              {rideTypes.map((item) => (
+                <div className={`ride-item ${item.name === 'Priority' ? 'active' : ''}`} key={item.name}>
+                  <div>
+                    <div className="ride-name">{item.name}</div>
+                    <div className="ride-desc">{item.desc}</div>
+                  </div>
+                  <div className="ride-price-wrap">
+                    <div className="ride-price">{item.price}</div>
+                    <div className="ride-eta">{item.eta}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="toggle-grid">
+              <div className="toggle-card">
+                <div>
+                  <div className="toggle-title">Business ride</div>
+                  <div className="toggle-desc">Priority support and receipts</div>
+                </div>
+                <div className="toggle-on" />
+              </div>
+              <div className="toggle-card">
+                <div>
+                  <div className="toggle-title">Save payment method</div>
+                  <div className="toggle-desc">Secure future checkout</div>
+                </div>
+                <div className="toggle-on" />
+              </div>
+            </div>
+            <div className="total-box">
+              <div>
+                <div className="card-kicker">Estimated total</div>
+                <div className="total-price">$27.75</div>
+              </div>
+              <div className="gold-badge">2 min away</div>
+            </div>
+            <a className="btn btn-gold full" href="#auth">Confirm Booking</a>
+          </div>
+
+          <div className="card white-card big-card">
+            <h2>Live GPS and easy communication</h2>
+            <p className="section-text">Customer and driver access with GPS, chat, calling, and ride alerts like leading ride apps</p>
+            <div className="map-box">
+              <div className="map-label top-left">
+                <small>Pickup point</small>
+                <strong>Airport Terminal A</strong>
+              </div>
+              <div className="map-label bottom-right">
+                <small>Destination</small>
+                <strong>Downtown Marriott</strong>
+              </div>
+              <div className="car-pin">G</div>
+            </div>
+            <div className="feature-mini-grid">
+              <div className="mini-card"><strong>In-app call</strong><span>Private communication without sharing personal numbers</span></div>
+              <div className="mini-card"><strong>In-app chat</strong><span>Quick coordination for pickup, arrival, and delays</span></div>
+              <div className="mini-card"><strong>Driver navigation</strong><span>Traffic-aware route guidance for faster, smoother trips</span></div>
+              <div className="mini-card"><strong>Live ride alerts</strong><span>Accepted, arriving, started, and completed trip notifications</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-white" id="features">
+        <div className="container">
+          <div className="section-intro">
+            <div className="pill light">Why GlideWay</div>
+            <h2>Built around comfort, safety, efficiency, and trust</h2>
+            <p className="section-text">A premium website and app experience created to make every ride smooth, calm, and dependable.</p>
+          </div>
+          <div className="pillars-grid">
+            {pillars.map((item) => (
+              <div className="card white-card pillar-card" key={item.title}>
+                <div className="icon-box">{item.title[0]}</div>
+                <h3>{item.title}</h3>
+                <p>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="three-grid">
+            <div className="card white-card info-card">
+              <h3>Customer app</h3>
+              <ul>
+                <li>Book in seconds</li>
+                <li>Track your driver live</li>
+                <li>Pay securely by card</li>
+                <li>Access receipts and ride history</li>
+              </ul>
+            </div>
+            <div className="card white-card info-card">
+              <h3>Driver app</h3>
+              <ul>
+                <li>Accept and manage ride requests</li>
+                <li>Use smart GPS navigation</li>
+                <li>Call or message riders in-app</li>
+                <li>View earnings dashboard</li>
+              </ul>
+            </div>
+            <div className="card white-card info-card">
+              <h3>Business tools</h3>
+              <ul>
+                <li>Corporate rides and invoicing</li>
+                <li>Dispatch and fleet oversight</li>
+                <li>Trip status monitoring</li>
+                <li>Support and refund workflows</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="about">
+        <div className="container two-col about-grid">
+          <div>
+            <div className="pill light">About GlideWay</div>
+            <h2>A smooth, peaceful journey for every rider</h2>
+            <p className="section-text">
+              GlideWay was founded to transform transportation into a more peaceful, reliable, and purpose-driven experience. We believe every rider deserves comfort, every driver deserves excellent tools, and every trip should feel secure and well guided.
+            </p>
+            <p className="section-text">
+              The meaning of GlideWay reflects a smooth, peaceful journey — walking in a peaceful path, being led in the right way, and moving forward with grace and purpose.
+            </p>
+          </div>
+          <div className="about-cards">
+            <div className="card white-card about-card">A smooth, peaceful journey</div>
+            <div className="card white-card about-card">Walking in a peaceful path</div>
+            <div className="card white-card about-card">Being led in the right way</div>
+            <div className="card white-card about-card">Moving with grace and purpose</div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mission-section">
+        <div className="container three-grid">
+          <div className="card dark-panel">
+            <h3>Mission</h3>
+            <p>To provide smooth, safe, and reliable transportation that serves people with excellence, integrity, and care.</p>
+          </div>
+          <div className="card dark-panel">
+            <h3>Vision</h3>
+            <p>To become a leading mobility platform where every journey is peaceful, efficient, and purpose-driven.</p>
+          </div>
+          <div className="card dark-panel">
+            <h3>Values</h3>
+            <ul>
+              <li>Comfort</li>
+              <li>Safety</li>
+              <li>Efficiency</li>
+              <li>Trust</li>
+              <li>Respect</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section-white" id="auth">
+        <div className="container two-col auth-grid">
+          <div className="card white-card big-card">
+            <h2>Login and registration</h2>
+            <p className="section-text">Professional access for riders, drivers, and business users</p>
+            <div className="auth-tabs">
+              <div className="auth-tab active">Login</div>
+              <div className="auth-tab">Register</div>
+            </div>
+            <div className="form-stack">
+              <div>
+                <label>Email or phone</label>
+                <input placeholder="Enter your email or phone" />
+              </div>
+              <div>
+                <label>Password</label>
+                <input type="password" placeholder="Enter your password" />
+              </div>
+              <a className="btn btn-dark full" href="#contact">Login</a>
+            </div>
+          </div>
+          <div className="support-stack">
+            <div className="card white-card support-card">
+              <h3>Secure customer access</h3>
+              <p>Protected login, saved payment methods, trip history, and live support.</p>
+            </div>
+            <div className="card white-card support-card">
+              <h3>Driver onboarding</h3>
+              <p>Driver license, vehicle documents, screening, approval, and activation.</p>
+            </div>
+            <div className="card white-card support-card">
+              <h3>Payments and receipts</h3>
+              <p>Secure card checkout, digital receipts, business invoicing, and refund handling.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="cta-section">
+        <div className="container">
+          <div className="cta-box">
+            <div>
+              <h2>Your domain is ready: www.glidewayride.com</h2>
+              <p>This deploy-ready project gives you the homepage structure, booking experience, brand message, and launch-ready page sections for GlideWay.</p>
+            </div>
+            <div className="hero-actions">
+              <a className="btn btn-gold" href="#book">Launch Booking</a>
+              <a className="btn btn-ghost" href="#auth">Become a Driver</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="site-footer" id="contact">
+        <div className="container footer-grid">
+          <div>
+            <div className="brand-name footer-brand">GlideWay</div>
+            <p>Ride Smoothly, Glide Easily</p>
+            <p>www.glidewayride.com</p>
+          </div>
+          <div>
+            <h4>Quick Links</h4>
+            <p>Book a Ride</p>
+            <p>Drive with Us</p>
+            <p>Business Rides</p>
+            <p>Safety</p>
+          </div>
+          <div>
+            <h4>Contact</h4>
+            <p>{contactEmail}</p>
+            <p>help@glidewayride.com</p>
+            <p>24/7 ride support</p>
+          </div>
+        </div>
+      </footer>
+    </main>
+  );
+}

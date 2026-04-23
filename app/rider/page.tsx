@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GlidewayLogo } from "@/components/glideway-logo"
+import { PaymentMethodsPage } from "@/components/payment-methods-page"
 
-type AppView = "home" | "booking" | "tracking" | "history" | "profile" | "support" | "map-details"
+type AppView = "home" | "booking" | "tracking" | "history" | "profile" | "support" | "map-details" | "payment" | "safety" | "notifications" | "settings" | "ride-details"
 type RideType = "economy" | "comfort" | "premium" | "xl"
 
 interface GPSData {
@@ -345,12 +346,10 @@ export default function RiderApp() {
   const menuItems = [
     { icon: <User className="w-5 h-5" />, label: "Profile", action: () => setCurrentView("profile") },
     { icon: <History className="w-5 h-5" />, label: "Ride History", action: () => setCurrentView("history") },
-    { icon: <CreditCard className="w-5 h-5" />, label: "Payment Methods", action: () => {} },
-    { icon: <Gift className="w-5 h-5" />, label: "Promotions", action: () => {} },
-    { icon: <Heart className="w-5 h-5" />, label: "Saved Places", action: () => {} },
-    { icon: <Shield className="w-5 h-5" />, label: "Safety", action: () => {} },
-    { icon: <HelpCircle className="w-5 h-5" />, label: "Support", action: () => setCurrentView("support") },
-    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: () => {} },
+    { icon: <CreditCard className="w-5 h-5" />, label: "Payment Methods", action: () => setCurrentView("payment") },
+    { icon: <Bell className="w-5 h-5" />, label: "Notifications", action: () => setCurrentView("notifications") },
+    { icon: <Shield className="w-5 h-5" />, label: "Safety", action: () => setCurrentView("safety") },
+    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: () => setCurrentView("settings") },
   ]
 
   // GPS Status Component
@@ -1341,6 +1340,86 @@ export default function RiderApp() {
     </div>
   )
 
+  const NotificationsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Notifications</h2>
+      <div className="space-y-3">
+        {[
+          { title: "Trip Reminder", desc: "Your scheduled ride is in 30 minutes", time: "2:30 PM" },
+          { title: "New Promotion", desc: "Get 20% off your next ride!", time: "10:45 AM" },
+          { title: "Driver Arrived", desc: "Your driver has arrived at pickup", time: "Yesterday" },
+        ].map((n, i) => (
+          <div key={i} className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+            <p className="font-semibold text-white text-sm">{n.title}</p>
+            <p className="text-xs text-gray-400 mt-1">{n.desc}</p>
+            <p className="text-xs text-gray-600 mt-1">{n.time}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const SafetyView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Safety Center</h2>
+      <div className="space-y-3">
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <Shield className="w-5 h-5 mr-3" />
+          Emergency Contacts
+        </Button>
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <AlertTriangle className="w-5 h-5 mr-3" />
+          Report Safety Issue
+        </Button>
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <Users className="w-5 h-5 mr-3" />
+          Share Trip Details
+        </Button>
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+          <p className="text-sm text-emerald-400 font-semibold">Your Safety Features:</p>
+          <p className="text-xs text-emerald-300 mt-2">- Real-time location sharing</p>
+          <p className="text-xs text-emerald-300">- Emergency button access</p>
+          <p className="text-xs text-emerald-300">- Driver verification system</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const SettingsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Settings</h2>
+      <div className="space-y-3">
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Ride Notifications</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Location Services</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Dark Mode</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <Button variant="destructive" className="w-full mt-4">
+          Sign Out
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
       {/* Header */}
@@ -1365,6 +1444,10 @@ export default function RiderApp() {
         {currentView === "history" && <HistoryView />}
         {currentView === "profile" && <ProfileView />}
         {currentView === "support" && <SupportView />}
+        {currentView === "payment" && <PaymentMethodsPage />}
+        {currentView === "notifications" && <NotificationsView />}
+        {currentView === "safety" && <SafetyView />}
+        {currentView === "settings" && <SettingsView />}
       </div>
 
       {/* Bottom Navigation */}

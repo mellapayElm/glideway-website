@@ -25,9 +25,28 @@ export default function ManagementPortalLogin() {
     setError("")
     if (!email || !password) { setError("Both fields are required."); return }
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 1400))
+    
+    try {
+      const response = await fetch("/api/auth/admin-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        localStorage.setItem("glideway_admin_token", data.token)
+        localStorage.setItem("glideway_admin_user", JSON.stringify(data.user))
+        setStep("tfa")
+      } else {
+        setError(data.error || "Invalid credentials")
+      }
+    } catch {
+      setError("Network error. Please try again.")
+    }
+    
     setIsLoading(false)
-    setStep("tfa")
   }
 
   const handleTfa = async (e: React.FormEvent) => {
@@ -35,7 +54,10 @@ export default function ManagementPortalLogin() {
     setError("")
     if (tfaCode.length !== 6) { setError("Enter the 6-digit code from your authenticator app."); return }
     setIsLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
+    
+    // For demo purposes, accept any 6-digit code
+    // In production, this would verify against TOTP
+    await new Promise(r => setTimeout(r, 800))
     setIsLoading(false)
     window.location.href = "/admin"
   }
@@ -173,6 +195,14 @@ export default function ManagementPortalLogin() {
                       <p className="text-xs text-gray-500 leading-relaxed">
                         This portal is restricted to authorized GlideWay operations staff. All sessions are logged. Unauthorized access is a violation of company policy and may be subject to legal action.
                       </p>
+                    </div>
+
+                    {/* Demo Credentials */}
+                    <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <p className="text-xs text-emerald-400 font-medium mb-2">Demo Credentials:</p>
+                      <p className="text-xs text-gray-400">Email: admin@glideway.com</p>
+                      <p className="text-xs text-gray-400">Password: admin1234</p>
+                      <p className="text-xs text-gray-400 mt-1">2FA Code: Any 6 digits (e.g., 123456)</p>
                     </div>
                   </motion.form>
                 ) : (

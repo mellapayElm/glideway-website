@@ -1,0 +1,843 @@
+// GlideWay Transportation Platform - Database Schema
+// Technology: PostgreSQL with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USER & AUTHENTICATION
+// ==========================================
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  phone             String    @unique
+  passwordHash      String
+  firstName         String
+  middleName        String?
+  lastName          String
+  dateOfBirth       DateTime?
+  profilePhoto      String?
+  role              UserRole  @default(RIDER)
+  status            UserStatus @default(PENDING_VERIFICATION)
+  emailVerified     Boolean   @default(false)
+  phoneVerified     Boolean   @default(false)
+  mfaEnabled        Boolean   @default(false)
+  mfaSecret         String?
+  lastLoginAt       DateTime?
+  lastLoginIp       String?
+  failedLoginAttempts Int     @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  address           Address?
+  emergencyContact  EmergencyContact?
+  paymentMethods    PaymentMethod[]
+  ridesAsRider      Ride[]            @relation("RiderRides")
+  ridesAsDriver     Ride[]            @relation("DriverRides")
+  driverProfile     DriverProfile?
+  sessions          Session[]
+  notifications     Notification[]
+  supportTickets    SupportTicket[]
+  auditLogs         AuditLog[]
+  loyaltyAccount    LoyaltyAccount?
+  savedLocations    SavedLocation[]
+
+  @@index([email])
+  @@index([phone])
+  @@index([role, status])
+}
+
+enum UserRole {
+  RIDER
+  DRIVER
+  SUPPORT
+  DISPATCHER
+  ACCOUNTANT
+  OPERATIONS
+  COMPLIANCE
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  SUSPENDED
+  DEACTIVATED
+  BANNED
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  refreshToken String   @unique
+  deviceType   String?
+  deviceId     String?
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Address {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  street      String
+  apartment   String?
+  city        String
+  state       String
+  zipCode     String
+  country     String  @default("US")
+  latitude    Float?
+  longitude   Float?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EmergencyContact {
+  id           String @id @default(cuid())
+  userId       String @unique
+  name         String
+  relationship String
+  phone        String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SavedLocation {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  type      LocationType @default(OTHER)
+  address   String
+  latitude  Float
+  longitude Float
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum LocationType {
+  HOME
+  WORK
+  AIRPORT
+  FAVORITE
+  OTHER
+}
+
+// ==========================================
+// DRIVER PROFILE & DOCUMENTS
+// ==========================================
+
+model DriverProfile {
+  id                    String       @id @default(cuid())
+  userId                String       @unique
+  licenseNumber         String
+  licenseState          String
+  licenseExpiry         DateTime
+  ssnLastFour           String
+  yearsOfExperience     Int
+  backgroundCheckStatus CheckStatus  @default(PENDING)
+  backgroundCheckDate   DateTime?
+  drugTestStatus        CheckStatus  @default(PENDING)
+  drugTestDate          DateTime?
+  safetyTrainingStatus  CheckStatus  @default(PENDING)
+  safetyTrainingDate    DateTime?
+  onboardingStatus      OnboardingStatus @default(STARTED)
+  isOnline              Boolean      @default(false)
+  lastOnlineAt          DateTime?
+  currentLatitude       Float?
+  currentLongitude      Float?
+  currentHeading        Float?
+  rating                Float        @default(5.0)
+  totalRides            Int          @default(0)
+  totalEarnings         Float        @default(0)
+  weeklyEarnings        Float        @default(0)
+  availableBalance      Float        @default(0)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle         Vehicle?
+  documents       DriverDocument[]
+  bankAccount     BankAccount?
+  payouts         DriverPayout[]
+  serviceAreas    DriverServiceArea[]
+  availability    DriverAvailability[]
+
+  @@index([isOnline, currentLatitude, currentLongitude])
+}
+
+enum CheckStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum OnboardingStatus {
+  STARTED
+  PERSONAL_INFO
+  DOCUMENTS
+  VEHICLE
+  BANK_INFO
+  BACKGROUND_CHECK
+  TRAINING
+  COMPLETED
+  REJECTED
+}
+
+model Vehicle {
+  id              String   @id @default(cuid())
+  driverProfileId String   @unique
+  make            String
+  model           String
+  year            Int
+  color           String
+  licensePlate    String
+  vin             String
+  vehicleType     VehicleType @default(SEDAN)
+  capacity        Int      @default(4)
+  insurancePolicy String?
+  insuranceExpiry DateTime?
+  registrationExpiry DateTime?
+  inspectionDate  DateTime?
+  isApproved      Boolean  @default(false)
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+}
+
+enum VehicleType {
+  SEDAN
+  SUV
+  VAN
+  LUXURY
+  ELECTRIC
+}
+
+model DriverDocument {
+  id              String       @id @default(cuid())
+  driverProfileId String
+  type            DocumentType
+  fileUrl         String
+  status          CheckStatus  @default(PENDING)
+  expiresAt       DateTime?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  rejectionReason String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@index([driverProfileId, type])
+}
+
+enum DocumentType {
+  DRIVERS_LICENSE
+  VEHICLE_REGISTRATION
+  INSURANCE
+  PROFILE_PHOTO
+  VEHICLE_PHOTO
+  BACKGROUND_CHECK
+  DRUG_TEST
+  SAFETY_TRAINING
+}
+
+model BankAccount {
+  id              String   @id @default(cuid())
+  driverProfileId String   @unique
+  accountHolder   String
+  routingNumber   String
+  accountNumberLast4 String
+  accountType     BankAccountType @default(CHECKING)
+  bankName        String?
+  isVerified      Boolean  @default(false)
+  stripeAccountId String?
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+}
+
+enum BankAccountType {
+  CHECKING
+  SAVINGS
+}
+
+model DriverServiceArea {
+  id              String   @id @default(cuid())
+  driverProfileId String
+  zoneName        String
+  zoneCode        String
+  isActive        Boolean  @default(true)
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([driverProfileId, zoneCode])
+}
+
+model DriverAvailability {
+  id              String   @id @default(cuid())
+  driverProfileId String
+  dayOfWeek       Int      // 0-6 (Sunday-Saturday)
+  startTime       String   // HH:MM format
+  endTime         String   // HH:MM format
+  isActive        Boolean  @default(true)
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([driverProfileId, dayOfWeek])
+}
+
+// ==========================================
+// PAYMENT SYSTEM
+// ==========================================
+
+model PaymentMethod {
+  id                String        @id @default(cuid())
+  userId            String
+  type              PaymentType
+  stripePaymentMethodId String?   @unique
+  last4             String?
+  brand             String?
+  expiryMonth       Int?
+  expiryYear        Int?
+  isDefault         Boolean       @default(false)
+  billingAddress    String?
+  createdAt         DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+enum PaymentType {
+  CARD
+  WALLET
+  BANK_ACCOUNT
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+model DriverPayout {
+  id              String       @id @default(cuid())
+  driverProfileId String
+  amount          Float
+  status          PayoutStatus @default(PENDING)
+  method          PayoutMethod @default(ACH)
+  stripeTransferId String?
+  processedAt     DateTime?
+  failureReason   String?
+  periodStart     DateTime
+  periodEnd       DateTime
+  createdAt       DateTime     @default(now())
+
+  driverProfile DriverProfile @relation(fields: [driverProfileId], references: [id], onDelete: Cascade)
+
+  @@index([driverProfileId, status])
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PayoutMethod {
+  ACH
+  INSTANT
+  CHECK
+}
+
+// ==========================================
+// RIDES & TRIPS
+// ==========================================
+
+model Ride {
+  id                  String      @id @default(cuid())
+  rideNumber          String      @unique @default(cuid())
+  riderId             String
+  driverId            String?
+  status              RideStatus  @default(REQUESTED)
+  rideType            RideType    @default(ECONOMY)
+  
+  // Locations
+  pickupAddress       String
+  pickupLatitude      Float
+  pickupLongitude     Float
+  dropoffAddress      String
+  dropoffLatitude     Float
+  dropoffLongitude    Float
+  
+  // Route & Distance
+  distanceMiles       Float?
+  durationMinutes     Float?
+  routePolyline       String?
+  
+  // Pricing (all in cents)
+  baseFare            Int
+  distanceCharge      Int
+  timeCharge          Int
+  trafficSurcharge    Int         @default(0)
+  demandSurcharge     Int         @default(0)
+  tollFees            Int         @default(0)
+  airportFee          Int         @default(0)
+  bookingFee          Int
+  discount            Int         @default(0)
+  promoCode           String?
+  subtotal            Int
+  taxAmount           Int
+  totalFare           Int
+  tipAmount           Int         @default(0)
+  
+  // Driver Economics
+  driverPayout        Int?
+  companyCommission   Int?
+  processorFee        Int?
+  
+  // Timestamps
+  requestedAt         DateTime    @default(now())
+  acceptedAt          DateTime?
+  arrivedAt           DateTime?
+  startedAt           DateTime?
+  completedAt         DateTime?
+  canceledAt          DateTime?
+  cancelReason        String?
+  canceledBy          String?
+  
+  // Ratings
+  riderRating         Float?
+  driverRating        Float?
+  riderFeedback       String?
+  driverFeedback      String?
+  
+  // Payment
+  paymentStatus       PaymentStatus @default(PENDING)
+  paymentIntentId     String?
+  chargeId            String?
+  refundId            String?
+  refundAmount        Int?
+  refundReason        String?
+
+  rider     User           @relation("RiderRides", fields: [riderId], references: [id])
+  driver    User?          @relation("DriverRides", fields: [driverId], references: [id])
+  tracking  RideTracking[]
+  messages  RideMessage[]
+  incidents Incident[]
+
+  @@index([riderId, status])
+  @@index([driverId, status])
+  @@index([status, requestedAt])
+  @@index([rideNumber])
+}
+
+enum RideStatus {
+  REQUESTED
+  SEARCHING
+  DRIVER_ASSIGNED
+  DRIVER_EN_ROUTE
+  DRIVER_ARRIVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+  NO_DRIVERS
+}
+
+enum RideType {
+  ECONOMY
+  COMFORT
+  PREMIUM
+  XL
+  PRIORITY
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  CAPTURED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+model RideTracking {
+  id        String   @id @default(cuid())
+  rideId    String
+  latitude  Float
+  longitude Float
+  heading   Float?
+  speed     Float?
+  timestamp DateTime @default(now())
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId, timestamp])
+}
+
+model RideMessage {
+  id        String   @id @default(cuid())
+  rideId    String
+  senderId  String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ride Ride @relation(fields: [rideId], references: [id], onDelete: Cascade)
+
+  @@index([rideId, createdAt])
+}
+
+// ==========================================
+// PRICING & ZONES
+// ==========================================
+
+model PricingConfig {
+  id                  String   @id @default(cuid())
+  name                String   @unique
+  baseFare            Int      // cents
+  perMileRate         Int      // cents per mile
+  perMinuteRate       Int      // cents per minute
+  minimumFare         Int      // cents
+  bookingFee          Int      // cents
+  cancellationFee     Int      // cents
+  driverPayoutPercent Float    @default(0.80)
+  taxRate             Float    @default(0.0)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Zone {
+  id                  String   @id @default(cuid())
+  name                String
+  code                String   @unique
+  type                ZoneType @default(STANDARD)
+  demandMultiplier    Float    @default(1.0)
+  surchargeAmount     Int      @default(0) // cents
+  isActive            Boolean  @default(true)
+  geoJsonBoundary     String?  // GeoJSON polygon
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([code, isActive])
+}
+
+enum ZoneType {
+  STANDARD
+  AIRPORT
+  DOWNTOWN
+  SUBURBAN
+  EVENT_VENUE
+  HIGH_DEMAND
+}
+
+model Promotion {
+  id              String         @id @default(cuid())
+  code            String         @unique
+  name            String
+  description     String?
+  type            PromotionType
+  value           Int            // cents or percentage
+  minFare         Int?           // minimum fare to apply
+  maxDiscount     Int?           // max discount amount
+  usageLimit      Int?
+  usageCount      Int            @default(0)
+  perUserLimit    Int            @default(1)
+  startsAt        DateTime
+  expiresAt       DateTime
+  isActive        Boolean        @default(true)
+  targetZones     String[]       @default([])
+  targetRideTypes String[]       @default([])
+  createdAt       DateTime       @default(now())
+
+  @@index([code, isActive])
+}
+
+enum PromotionType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_RIDE
+}
+
+// ==========================================
+// SUPPORT & INCIDENTS
+// ==========================================
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  ticketNumber String        @unique @default(cuid())
+  userId      String
+  rideId      String?
+  category    TicketCategory
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
+  subject     String
+  description String
+  assignedTo  String?
+  resolution  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id])
+  messages    TicketMessage[]
+
+  @@index([userId, status])
+  @@index([status, priority])
+}
+
+enum TicketCategory {
+  PAYMENT
+  RIDE_ISSUE
+  DRIVER_COMPLAINT
+  RIDER_COMPLAINT
+  SAFETY
+  LOST_ITEM
+  ACCOUNT
+  REFUND
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_RESPONSE
+  RESOLVED
+  CLOSED
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  senderId  String
+  message   String
+  isStaff   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+}
+
+model Incident {
+  id          String         @id @default(cuid())
+  rideId      String?
+  reporterId  String
+  type        IncidentType
+  severity    IncidentSeverity @default(LOW)
+  status      IncidentStatus   @default(REPORTED)
+  description String
+  location    String?
+  evidence    String[]       @default([])
+  resolution  String?
+  assignedTo  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  ride Ride? @relation(fields: [rideId], references: [id])
+
+  @@index([type, status])
+  @@index([severity, status])
+}
+
+enum IncidentType {
+  ACCIDENT
+  HARASSMENT
+  FRAUD
+  SAFETY_CONCERN
+  ROUTE_DEVIATION
+  INTOXICATION
+  PROPERTY_DAMAGE
+  OTHER
+}
+
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IncidentStatus {
+  REPORTED
+  INVESTIGATING
+  ACTION_TAKEN
+  RESOLVED
+  DISMISSED
+}
+
+// ==========================================
+// LOYALTY & REWARDS
+// ==========================================
+
+model LoyaltyAccount {
+  id          String       @id @default(cuid())
+  userId      String       @unique
+  tier        LoyaltyTier  @default(BRONZE)
+  points      Int          @default(0)
+  totalPoints Int          @default(0)
+  totalRides  Int          @default(0)
+  totalSpent  Int          @default(0) // cents
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+}
+
+enum LoyaltyTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+model LoyaltyTransaction {
+  id               String              @id @default(cuid())
+  loyaltyAccountId String
+  type             LoyaltyTransactionType
+  points           Int
+  description      String
+  rideId           String?
+  createdAt        DateTime            @default(now())
+
+  account LoyaltyAccount @relation(fields: [loyaltyAccountId], references: [id], onDelete: Cascade)
+
+  @@index([loyaltyAccountId, createdAt])
+}
+
+enum LoyaltyTransactionType {
+  EARNED
+  REDEEMED
+  BONUS
+  EXPIRED
+  ADJUSTMENT
+}
+
+// ==========================================
+// NOTIFICATIONS
+// ==========================================
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+enum NotificationType {
+  RIDE_UPDATE
+  PAYMENT
+  PROMOTION
+  SAFETY
+  ACCOUNT
+  SYSTEM
+}
+
+// ==========================================
+// AUDIT & COMPLIANCE
+// ==========================================
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  oldValue    Json?
+  newValue    Json?
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([entity, entityId])
+  @@index([userId, timestamp])
+  @@index([action, timestamp])
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
+  category  String
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+// ==========================================
+// FRAUD & RISK
+// ==========================================
+
+model FraudAlert {
+  id          String         @id @default(cuid())
+  userId      String?
+  rideId      String?
+  type        FraudType
+  severity    IncidentSeverity @default(MEDIUM)
+  status      FraudStatus      @default(FLAGGED)
+  description String
+  evidence    Json?
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  resolution  String?
+  createdAt   DateTime       @default(now())
+
+  @@index([type, status])
+  @@index([severity, status])
+}
+
+enum FraudType {
+  PAYMENT_FRAUD
+  ACCOUNT_TAKEOVER
+  FAKE_RIDES
+  GPS_SPOOFING
+  PROMO_ABUSE
+  DRIVER_FRAUD
+  SUSPICIOUS_ACTIVITY
+}
+
+enum FraudStatus {
+  FLAGGED
+  INVESTIGATING
+  CONFIRMED
+  FALSE_POSITIVE
+  RESOLVED
+}

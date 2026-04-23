@@ -155,12 +155,7 @@ export default function AppLogin() {
         <CardContent className="p-6">
           {/* Logo */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">G</span>
-              </div>
-              <span className="text-xl font-bold text-white">GlideWay</span>
-            </div>
+            <img src="/logo.png" alt="GlideWay Logo" className="h-12 w-auto object-contain mx-auto mb-4" />
             <p className="text-sm text-gray-400">
               {mode === "login" ? "Welcome back! Sign in to continue" : "Create your account"}
             </p>

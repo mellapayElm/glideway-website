@@ -2,7 +2,7 @@
 // Handles ride requests, booking, and management
 
 import { NextRequest, NextResponse } from 'next/server'
-import { calculateFare, type TripInput, type FareResult } from '@/lib/fare-engine'
+import { calculateCompleteFare, type TripInputs } from '@/lib/fare-engine'
 
 // ==========================================
 // GET - List rides or get fare estimate
@@ -47,17 +47,20 @@ export async function GET(request: NextRequest) {
     const trafficLevel = isRushHour ? 'heavy' : 'moderate'
 
     // Calculate fare
-    const tripInput: TripInput = {
+    const tripInput: TripInputs = {
       distanceMiles,
-      durationMinutes,
-      rideType,
-      trafficLevel: trafficLevel as TripInput['trafficLevel'],
+      estimatedMinutes: durationMinutes,
+      rideType: rideType.toLowerCase() as 'economy' | 'comfort' | 'premium' | 'xl',
+      trafficCondition: trafficLevel as 'light' | 'moderate' | 'heavy',
       demandLevel: 'normal',
       isAirport: false,
-      tollAmount: 0
+      isEvent: false,
+      tollAmount: 0,
+      timeOfDay: 'off-peak',
+      dayOfWeek: 'weekday'
     }
 
-    const fareResult = calculateFare(tripInput)
+    const fareResult = calculateCompleteFare(tripInput)
 
     return NextResponse.json({
       success: true,
@@ -71,7 +74,7 @@ export async function GET(request: NextRequest) {
           text: `${durationMinutes} min`
         },
         traffic: trafficLevel,
-        fare: fareResult,
+        fare: fareResult.breakdown,
         rideType,
         expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString() // 5 min expiry
       }
@@ -131,18 +134,20 @@ export async function POST(request: NextRequest) {
     const durationMinutes = Math.ceil(distanceMiles * 2.4)
 
     // Calculate fare
-    const tripInput: TripInput = {
+    const tripInput: TripInputs = {
       distanceMiles,
-      durationMinutes,
-      rideType,
-      trafficLevel: 'moderate',
+      estimatedMinutes: durationMinutes,
+      rideType: rideType.toLowerCase() as 'economy' | 'comfort' | 'premium' | 'xl',
+      trafficCondition: 'moderate',
       demandLevel: 'normal',
       isAirport: false,
+      isEvent: false,
       tollAmount: 0,
-      promoCode
+      timeOfDay: 'off-peak',
+      dayOfWeek: 'weekday'
     }
 
-    const fareResult = calculateFare(tripInput)
+    const fareResult = calculateCompleteFare(tripInput)
 
     // Create ride record
     const ride = {
@@ -160,9 +165,9 @@ export async function POST(request: NextRequest) {
       distanceMiles: Math.round(distanceMiles * 10) / 10,
       durationMinutes,
       ...fareResult.breakdown,
-      totalFare: fareResult.totalFare,
-      driverPayout: fareResult.economics.driverPayout,
-      companyCommission: fareResult.economics.companyMargin,
+      totalFare: fareResult.breakdown.totalFare,
+      driverPayout: fareResult.driverPayout.basePayout,
+      companyCommission: fareResult.companyEconomics.companyMargin,
       promoCode: promoCode || null,
       paymentMethodId,
       requestedAt: new Date().toISOString()

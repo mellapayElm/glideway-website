@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import RideStatusCard from "@/components/ride-status-card";
 import RideChatPanel from "@/components/ride-chat-panel";
 import RideSupportActions from "@/components/ride-support-actions";
-import GoogleMapLive from "@/components/google-map-live";
+import { GoogleMap } from "@/components/google-maps-component";
 import { fetchRideById } from "@/lib/api";
 import { getTripsSocket, joinRideRoom, leaveRideRoom } from "@/lib/socket";
 
@@ -106,13 +106,14 @@ export default function RideLiveTripPage({ params }: { params: { rideId: string 
             estimatedFareMinor={ride?.estimatedFareMinor}
             finalFareMinor={ride?.finalFareMinor}
           />
-          <GoogleMapLive
-            pickup={pickupCoords}
-            dropoff={dropoffCoords}
-            lat={location.lat}
-            lng={location.lng}
-            heading={location.heading}
-            speedKph={location.speedKph}
+          <GoogleMap
+            pickupLat={pickupCoords?.[1] || 34.0522}
+            pickupLng={pickupCoords?.[0] || -118.2437}
+            dropoffLat={dropoffCoords?.[1] || 34.1015}
+            dropoffLng={dropoffCoords?.[0] || -117.7149}
+            driverLat={location.lat || 34.0730}
+            driverLng={location.lng || -118.2465}
+            className="w-full h-96"
           />
         </div>
 

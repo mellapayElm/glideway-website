@@ -98,7 +98,7 @@ interface PricingBreakdown {
 }
 
 export default function RiderApp() {
-  const [currentView, setCurrentView] = useState<AppView>("home")
+  const [selectedRideId, setSelectedRideId] = useState<string | null>(null)
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
   const [selectedRide, setSelectedRide] = useState<RideType>("comfort")
@@ -1205,12 +1205,16 @@ export default function RiderApp() {
 
       <div className="space-y-3">
         {[
-          { id: "GW-10234", dest: "LAX Airport", date: "Today, 2:30 PM", price: 32.50, status: "completed", driver: "John D." },
-          { id: "GW-10198", dest: "Downtown Office", date: "Yesterday", price: 18.75, status: "completed", driver: "Sarah M." },
-          { id: "GW-10156", dest: "Santa Monica Pier", date: "Dec 18", price: 24.00, status: "completed", driver: "Mike R." },
-          { id: "GW-10102", dest: "Hollywood Bowl", date: "Dec 15", price: 28.50, status: "cancelled", driver: "---" },
+          { id: "GW-10234", dest: "LAX Airport", date: "Today, 2:30 PM", price: 32.50, status: "completed", driver: "John D.", distance: 12.5, duration: 45, pickup: "Downtown LA" },
+          { id: "GW-10198", dest: "Downtown Office", date: "Yesterday", price: 18.75, status: "completed", driver: "Sarah M.", distance: 8.2, duration: 28, pickup: "Midtown" },
+          { id: "GW-10156", dest: "Santa Monica Pier", date: "Dec 18", price: 24.00, status: "completed", driver: "Mike R.", distance: 15.3, duration: 52, pickup: "Beverly Hills" },
+          { id: "GW-10102", dest: "Hollywood Bowl", date: "Dec 15", price: 28.50, status: "cancelled", driver: "---", distance: 0, duration: 0, pickup: "---" },
         ].map((ride) => (
-          <Card key={ride.id} className="bg-slate-800/50 border-slate-700/50">
+          <Card 
+            key={ride.id} 
+            className="bg-slate-800/50 border-slate-700/50 cursor-pointer hover:border-emerald-500/50 hover:bg-slate-800 transition-all"
+            onClick={() => setCurrentView("ride-details")}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-slate-500">{ride.id}</span>
@@ -1420,6 +1424,52 @@ export default function RiderApp() {
     </div>
   )
 
+  const RideDetailsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("history")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back to History
+      </Button>
+      <h2 className="text-xl font-bold text-white">Ride Details</h2>
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Ride ID</p>
+          <p className="text-white font-semibold">GW-10234</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Route</p>
+          <p className="text-white font-semibold">Downtown LA → LAX Airport</p>
+          <p className="text-xs text-gray-400 mt-1">12.5 miles • 45 minutes</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Driver</p>
+          <p className="text-white font-semibold">John D.</p>
+          <p className="text-xs text-emerald-400 mt-1">★★★★★ (4.95 rating)</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Vehicle</p>
+          <p className="text-white font-semibold">Black Honda Civic</p>
+          <p className="text-xs text-gray-400 mt-1">License: GW-5239K</p>
+        </div>
+        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+          <p className="text-xs text-gray-500 mb-2">Payment</p>
+          <div className="flex items-center justify-between">
+            <p className="text-white font-semibold">Visa ending in 4242</p>
+            <p className="text-lg font-bold text-emerald-400">$32.50</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white">
+            Rate Driver
+          </Button>
+          <Button variant="outline" className="flex-1 text-white border-gray-600 hover:border-gray-400">
+            Report Issue
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
       {/* Header */}
@@ -1442,6 +1492,7 @@ export default function RiderApp() {
         {currentView === "booking" && <BookingView />}
         {currentView === "tracking" && <TrackingView />}
         {currentView === "history" && <HistoryView />}
+        {currentView === "ride-details" && <RideDetailsView />}
         {currentView === "profile" && <ProfileView />}
         {currentView === "support" && <SupportView />}
         {currentView === "payment" && <PaymentMethodsPage />}

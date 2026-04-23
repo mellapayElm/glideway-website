@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CreditCard, Plus, X, Check } from 'lucide-react';
+import { CreditCard, Plus, X, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -14,7 +14,11 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
-export function PaymentMethodsPage() {
+interface PaymentMethodsPageProps {
+  onBack?: () => void;
+}
+
+export function PaymentMethodsPage({ onBack }: PaymentMethodsPageProps) {
   const [methods, setMethods] = useState<PaymentMethod[]>([
     {
       id: '1',
@@ -75,6 +79,12 @@ export function PaymentMethodsPage() {
 
   return (
     <div className="space-y-6">
+      {onBack && (
+        <Button variant="ghost" className="text-gray-300 mb-2" onClick={onBack}>
+          <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+          Back
+        </Button>
+      )}
       <div>
         <h2 className="text-2xl font-bold text-white">Payment Methods</h2>
         <p className="text-gray-400 text-sm mt-1">Manage your payment options for rides</p>

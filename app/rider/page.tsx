@@ -99,6 +99,7 @@ interface PricingBreakdown {
 
 export default function RiderApp() {
   const [selectedRideId, setSelectedRideId] = useState<string | null>(null)
+  const [currentView, setCurrentView] = useState<AppView>("home")
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
   const [selectedRide, setSelectedRide] = useState<RideType>("comfort")

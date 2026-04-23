@@ -1,6 +1,8 @@
 "use server"
 
 import { NextRequest, NextResponse } from "next/server"
+import { sendVerificationSMS } from "@/lib/twilio"
+import { sendVerificationEmail } from "@/lib/sendgrid"
 
 // Simulated database store (in production, use PostgreSQL with Prisma)
 const pendingVerifications = new Map<string, {
@@ -135,11 +137,18 @@ export async function POST(request: NextRequest) {
           attempts: 0
         })
 
-        // In production, send SMS via Twilio/AWS SNS
-        console.log(`[OTP] Sending ${otp} to ${phone}`)
+        // Send SMS verification via Twilio
+        const smsResult = await sendVerificationSMS(phone, otp)
+        if (!smsResult.success) {
+          console.error(`[REGISTRATION] Failed to send SMS to ${phone}:`, smsResult.error)
+          return NextResponse.json({ 
+            success: false, 
+            error: "Failed to send verification code. Please try again." 
+          }, { status: 500 })
+        }
 
         // Log to admin audit
-        console.log(`[ADMIN AUDIT] New registration initiated: ${email}, ${phone}`)
+        console.log(`[ADMIN AUDIT] New registration initiated: ${email}, ${phone}, SMS sent successfully`)
 
         return NextResponse.json({ 
           success: true, 
@@ -188,7 +197,7 @@ export async function POST(request: NextRequest) {
 
       // Step 3: Verify Email (send link)
       case "VERIFY_EMAIL": {
-        const { verificationId, email } = body
+        const { verificationId, email, firstName } = body
 
         const verification = pendingVerifications.get(verificationId)
         if (!verification || verification.email !== email) {
@@ -198,8 +207,15 @@ export async function POST(request: NextRequest) {
         // Generate email verification token
         const emailToken = `EMAIL-${Date.now()}-${Math.random().toString(36).substring(7)}`
 
-        // In production, send email via SendGrid/AWS SES
-        console.log(`[EMAIL] Sending verification link with token ${emailToken} to ${email}`)
+        // Send verification email via SendGrid
+        const emailResult = await sendVerificationEmail(email, firstName || "User", emailToken)
+        if (!emailResult.success) {
+          console.error(`[REGISTRATION] Failed to send email to ${email}:`, emailResult.error)
+          return NextResponse.json({ 
+            success: false, 
+            error: "Failed to send verification email. Please try again." 
+          }, { status: 500 })
+        }
 
         return NextResponse.json({ 
           success: true, 
@@ -348,7 +364,17 @@ export async function POST(request: NextRequest) {
           attempts: 0
         })
 
-        console.log(`[OTP] Sending driver verification ${otp} to ${phone}`)
+        // Send SMS verification via Twilio
+        const smsResult = await sendVerificationSMS(phone, otp)
+        if (!smsResult.success) {
+          console.error(`[DRIVER REGISTRATION] Failed to send SMS to ${phone}:`, smsResult.error)
+          return NextResponse.json({ 
+            success: false, 
+            error: "Failed to send verification code. Please try again." 
+          }, { status: 500 })
+        }
+
+        console.log(`[DRIVER REGISTRATION] Verification SMS sent to ${phone}`)
 
         return NextResponse.json({ 
           success: true, 
@@ -524,7 +550,15 @@ export async function POST(request: NextRequest) {
         verification.expiresAt = new Date(Date.now() + 10 * 60 * 1000)
         verification.attempts = 0
 
-        console.log(`[OTP] Resending ${newOtp} to ${verification.phone}`)
+        // Send new OTP via Twilio
+        const smsResult = await sendVerificationSMS(verification.phone, newOtp)
+        if (!smsResult.success) {
+          console.error(`[RESEND OTP] Failed to send SMS to ${verification.phone}:`, smsResult.error)
+          return NextResponse.json({ 
+            success: false, 
+            error: "Failed to resend code. Please try again." 
+          }, { status: 500 })
+        }
 
         return NextResponse.json({ success: true, message: "New code sent" })
       }

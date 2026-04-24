@@ -12,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GlidewayLogo } from "@/components/glideway-logo"
 
 type DriverView = "home" | "trip" | "earnings" | "performance" | "settings"
 type DriverStatus = "offline" | "online" | "busy"
@@ -155,8 +154,7 @@ export default function DriverDashboard() {
           </button>
           
           <div className="flex items-center gap-2">
-            <GlidewayLogo className="w-8 h-8" />
-            <span className="font-bold text-lg">Glide<span className="text-emerald-500">Way</span></span>
+            <span className="font-bold text-lg"><span className="text-white">GLIDE</span><span className="text-emerald-500">WAY</span></span>
             <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded">DRIVER</span>
           </div>
           

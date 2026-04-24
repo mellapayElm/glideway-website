@@ -17,6 +17,7 @@ import {
   Car
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { BookingMap } from "@/components/booking-map"
 
 // Rider selection options
 const riderOptions = [
@@ -42,6 +43,8 @@ const dayOptions = [
 export function BookingSection() {
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
+  const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [selectedTime, setSelectedTime] = useState("now")
   const [selectedDay, setSelectedDay] = useState("today")
   const [selectedRider, setSelectedRider] = useState("me")
@@ -177,68 +180,21 @@ export function BookingSection() {
           </div>
         </div>
 
-        {/* Right Side - Map */}
-        <div className="flex-1 relative bg-slate-200 min-h-[400px] lg:min-h-0">
-          {/* Static Map Background with CSS styling */}
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-100 via-slate-200 to-slate-300">
-            {/* Map Grid Pattern */}
-            <div 
-              className="absolute inset-0 opacity-30"
-              style={{
-                backgroundImage: `
-                  linear-gradient(to right, #cbd5e1 1px, transparent 1px),
-                  linear-gradient(to bottom, #cbd5e1 1px, transparent 1px)
-                `,
-                backgroundSize: '60px 60px'
-              }}
-            />
-            
-            {/* Simulated Streets */}
-            <svg className="absolute inset-0 w-full h-full opacity-40" preserveAspectRatio="none">
-              <line x1="0%" y1="30%" x2="100%" y2="30%" stroke="#94a3b8" strokeWidth="3"/>
-              <line x1="0%" y1="60%" x2="100%" y2="60%" stroke="#94a3b8" strokeWidth="3"/>
-              <line x1="25%" y1="0%" x2="25%" y2="100%" stroke="#94a3b8" strokeWidth="3"/>
-              <line x1="55%" y1="0%" x2="55%" y2="100%" stroke="#94a3b8" strokeWidth="3"/>
-              <line x1="80%" y1="0%" x2="80%" y2="100%" stroke="#94a3b8" strokeWidth="3"/>
-              {/* Diagonal roads */}
-              <line x1="0%" y1="0%" x2="50%" y2="50%" stroke="#94a3b8" strokeWidth="2"/>
-              <line x1="100%" y1="20%" x2="60%" y2="80%" stroke="#94a3b8" strokeWidth="2"/>
-            </svg>
-
-            {/* Green areas (parks) */}
-            <div className="absolute top-[15%] left-[60%] w-32 h-24 bg-green-200/60 rounded-lg" />
-            <div className="absolute bottom-[20%] left-[10%] w-40 h-20 bg-green-200/60 rounded-lg" />
-            
-            {/* Water body */}
-            <div className="absolute bottom-[10%] right-[5%] w-48 h-32 bg-blue-200/50 rounded-full" />
-          </div>
-
-          {/* Location Pin - Center of map */}
-          {pickup && (
-            <motion.div 
-              initial={{ scale: 0, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-full z-10"
-            >
-              <div className="flex flex-col items-center">
-                <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center shadow-lg">
-                  <div className="w-3 h-3 bg-white rounded-full" />
-                </div>
-                <div className="w-1 h-4 bg-black" />
-              </div>
-            </motion.div>
-          )}
-
-          {/* Map Attribution */}
-          <div className="absolute bottom-4 right-4 bg-white/90 px-3 py-1.5 rounded text-xs text-gray-600">
-            GlideWay Maps
-          </div>
-
-          {/* Zoom Controls */}
-          <div className="absolute bottom-20 right-4 flex flex-col bg-white rounded-lg shadow-lg overflow-hidden">
-            <button className="p-3 hover:bg-gray-100 border-b border-gray-200 text-gray-700 font-bold">+</button>
-            <button className="p-3 hover:bg-gray-100 text-gray-700 font-bold">-</button>
-          </div>
+        {/* Right Side - Google Maps */}
+        <div className="flex-1 relative min-h-[400px] lg:min-h-0 rounded-lg overflow-hidden">
+          <BookingMap
+            pickup={pickupCoords}
+            dropoff={dropoffCoords}
+            onPickupSelect={(lat, lng) => {
+              setPickupCoords({ lat, lng })
+              setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+            }}
+            onDropoffSelect={(lat, lng) => {
+              setDropoffCoords({ lat, lng })
+              setDropoff(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+            }}
+            height="100%"
+          />
         </div>
       </div>
 

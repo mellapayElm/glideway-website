@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GlidewayLogo } from "@/components/glideway-logo"
 import { Switch } from "@/components/ui/switch"
+import { IncomingRideAlert } from "@/components/incoming-ride-alert"
 
 type DriverStatus = "offline" | "online" | "busy"
 type TripStatus = "idle" | "incoming" | "accepted" | "navigating_pickup" | "waiting_rider" | "in_trip" | "completed"
@@ -44,10 +45,13 @@ interface TripRequest {
   }
   rideType: string
   estimatedFare: number
+  driverPayout: number
   estimatedDistance: number
   estimatedDuration: number
   surgeMultiplier: number
   expiresIn: number
+  matchScore?: number
+  matchReasons?: string[]
 }
 
 interface EarningsData {
@@ -69,7 +73,7 @@ export default function DriverApp() {
   const [showEarnings, setShowEarnings] = useState(false)
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [currentTrip, setCurrentTrip] = useState<TripRequest | null>(null)
-  const [tripTimer, setTripTimer] = useState(15)
+  const [tripTimer, setTripTimer] = useState(20)
   const [navigationStarted, setNavigationStarted] = useState(false)
 
   // GPS State
@@ -91,7 +95,7 @@ export default function DriverApp() {
     rating: 4.92
   })
 
-  // Demo trip request
+  // Demo trip request with smart matching data
   const demoTrip: TripRequest = {
     id: "GW-" + Math.floor(10000 + Math.random() * 90000),
     rider: {
@@ -113,10 +117,13 @@ export default function DriverApp() {
     },
     rideType: "Comfort",
     estimatedFare: 34.50,
+    driverPayout: 27.60, // 80% of fare
     estimatedDistance: 12.4,
     estimatedDuration: 28,
     surgeMultiplier: 1.0,
-    expiresIn: 15
+    expiresIn: 20,
+    matchScore: 142,
+    matchReasons: ["Very close", "Top-rated driver", "Matching vehicle", "High acceptance"]
   }
 
   // Simulate GPS updates
@@ -133,28 +140,45 @@ export default function DriverApp() {
     return () => clearInterval(interval)
   }, [])
 
-  // Simulate incoming ride when online
+  // Simulate incoming ride when online - triggers smart dispatch
   useEffect(() => {
     if (driverStatus === "online" && tripStatus === "idle") {
       const timeout = setTimeout(() => {
-        setCurrentTrip(demoTrip)
+        // Generate new trip with random variations
+        const newTrip = {
+          ...demoTrip,
+          id: "GW-" + Math.floor(10000 + Math.random() * 90000),
+          pickup: {
+            ...demoTrip.pickup,
+            distance: Math.round((0.3 + Math.random() * 2) * 10) / 10,
+            eta: Math.floor(2 + Math.random() * 6)
+          },
+          estimatedFare: Math.round((20 + Math.random() * 40) * 100) / 100,
+          driverPayout: 0, // Will be calculated
+          surgeMultiplier: Math.random() > 0.7 ? 1.5 : 1.0
+        }
+        newTrip.driverPayout = Math.round(newTrip.estimatedFare * 0.8 * 100) / 100
+        
+        setCurrentTrip(newTrip)
         setTripStatus("incoming")
-        setTripTimer(15)
-      }, 5000)
+        setTripTimer(20)
+      }, 4000)
       return () => clearTimeout(timeout)
     }
   }, [driverStatus, tripStatus])
 
-  // Trip request countdown
+  // Trip request countdown with auto-forward to next driver
   useEffect(() => {
     if (tripStatus === "incoming" && tripTimer > 0) {
       const interval = setInterval(() => {
         setTripTimer(prev => {
           if (prev <= 1) {
-            // Auto decline if timer expires
+            // Auto decline if timer expires - trip goes to next driver
             setTripStatus("idle")
             setCurrentTrip(null)
-            return 15
+            // In production, this would notify the dispatch system to try next driver
+            console.log("[GlideWoy] Trip request expired - forwarding to next nearest driver")
+            return 20
           }
           return prev - 1
         })
@@ -382,123 +406,19 @@ export default function DriverApp() {
           </div>
         )}
 
-        {/* Incoming Trip Request */}
-        {tripStatus === "incoming" && currentTrip && (
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            className="absolute inset-0 bg-slate-950 z-50"
-          >
-            <div className="h-full flex flex-col">
-              {/* Timer Header */}
-              <div className="bg-emerald-600 p-4 text-center">
-                <div className="text-4xl font-bold text-white mb-1">{tripTimer}</div>
-                <div className="text-emerald-100 text-sm">seconds to accept</div>
-              </div>
-
-              {/* Trip Details */}
-              <div className="flex-1 overflow-auto p-4 space-y-4">
-                {/* Rider Info */}
-                <div className="flex items-center gap-4 p-4 bg-slate-800/50 rounded-xl">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-xl font-bold">
-                    {currentTrip.rider.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-white">{currentTrip.rider.name}</div>
-                    <div className="flex items-center gap-2 text-sm text-slate-400">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      <span>{currentTrip.rider.rating}</span>
-                      <span>({currentTrip.rider.trips} trips)</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Pickup Location */}
-                <div className="p-4 bg-slate-800/50 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-slate-500 mb-1">PICKUP</div>
-                      <div className="text-white font-medium">{currentTrip.pickup.address}</div>
-                      <div className="text-sm text-emerald-400 mt-1">
-                        {currentTrip.pickup.distance} mi away - {currentTrip.pickup.eta} min
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dropoff Location */}
-                <div className="p-4 bg-slate-800/50 rounded-xl">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center flex-shrink-0">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="text-xs text-slate-500 mb-1">DROPOFF</div>
-                      <div className="text-white font-medium">{currentTrip.dropoff.address}</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Trip Stats */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-slate-800/50 rounded-xl p-3 text-center">
-                    <Route className="w-5 h-5 mx-auto text-blue-400 mb-1" />
-                    <div className="text-lg font-bold text-white">{currentTrip.estimatedDistance} mi</div>
-                    <div className="text-xs text-slate-500">Distance</div>
-                  </div>
-                  <div className="bg-slate-800/50 rounded-xl p-3 text-center">
-                    <Clock className="w-5 h-5 mx-auto text-purple-400 mb-1" />
-                    <div className="text-lg font-bold text-white">{currentTrip.estimatedDuration} min</div>
-                    <div className="text-xs text-slate-500">Duration</div>
-                  </div>
-                  <div className="bg-slate-800/50 rounded-xl p-3 text-center">
-                    <DollarSign className="w-5 h-5 mx-auto text-emerald-400 mb-1" />
-                    <div className="text-lg font-bold text-emerald-400">${currentTrip.estimatedFare.toFixed(2)}</div>
-                    <div className="text-xs text-slate-500">Est. Fare</div>
-                  </div>
-                </div>
-
-                {/* Ride Type Badge */}
-                <div className="flex items-center justify-center gap-2 py-2">
-                  <Car className="w-5 h-5 text-emerald-400" />
-                  <span className="text-white font-medium">{currentTrip.rideType}</span>
-                  {currentTrip.surgeMultiplier > 1 && (
-                    <span className="px-2 py-0.5 bg-orange-500/20 text-orange-400 text-xs rounded-full">
-                      {currentTrip.surgeMultiplier}x Surge
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-4 bg-slate-900 border-t border-slate-800">
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={declineTrip}
-                    variant="outline"
-                    size="lg"
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/10"
-                  >
-                    <X className="w-5 h-5 mr-2" />
-                    Decline
-                  </Button>
-                  <Button
-                    onClick={acceptTrip}
-                    size="lg"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                  >
-                    <Check className="w-5 h-5 mr-2" />
-                    Accept
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
+        {/* Incoming Trip Request - Full Screen Alert with Sound & Vibration */}
+        <AnimatePresence>
+          {tripStatus === "incoming" && currentTrip && (
+            <IncomingRideAlert
+              request={currentTrip}
+              countdown={tripTimer}
+              onAccept={acceptTrip}
+              onDecline={declineTrip}
+              soundEnabled={soundEnabled}
+              onToggleSound={() => setSoundEnabled(!soundEnabled)}
+            />
+          )}
+        </AnimatePresence>
 
         {/* Navigating to Pickup / In Trip */}
         {(tripStatus === "navigating_pickup" || tripStatus === "waiting_rider" || tripStatus === "in_trip") && currentTrip && (

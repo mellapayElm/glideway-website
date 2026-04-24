@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
+import { GlidewayLogo } from "@/components/glideway-logo"
 import GoogleMapLive from "@/components/google-map-live"
 import Link from "next/link"
 
@@ -102,7 +103,7 @@ export default function LiveTripPage() {
             <ChevronLeft className="w-5 h-5" />
             <span className="text-sm">Back to App</span>
           </Link>
-          <span className="text-lg font-bold tracking-tight"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></span>
+          <GlidewayLogo className="h-8" />
           <div className="w-20" /> {/* Spacer for centering */}
         </div>
       </header>

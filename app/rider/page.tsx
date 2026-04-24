@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { GlidewayLogo } from "@/components/glideway-logo"
 import Link from "next/link"
 import { BookingMapPanel } from "@/components/booking-map-panel"
 
@@ -1291,7 +1292,7 @@ export default function RiderApp() {
           <Button variant="ghost" size="icon" className="text-white" onClick={() => setShowMenu(true)}>
             <Menu className="w-6 h-6" />
           </Button>
-          <span className="text-lg font-bold tracking-tight"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></span>
+          <GlidewayLogo />
           <Button variant="ghost" size="icon" className="text-white relative">
             <Bell className="w-6 h-6" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />

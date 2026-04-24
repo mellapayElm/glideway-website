@@ -281,12 +281,12 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
         )}
 
         {/* Logo and Header */}
-        <div className="absolute top-4 left-4 z-20">
-          <GlidewayLogo variant="icon" size="md" />
+        <div className="absolute top-3 left-3 z-20 bg-gray-900/90 rounded-xl p-2 shadow-lg backdrop-blur-sm">
+          <GlidewayLogo variant="icon" size="sm" />
         </div>
 
         {/* Nearby drivers indicator */}
-        <div className="absolute top-4 left-4 bg-white rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2">
+        <div className="absolute top-3 right-3 bg-white rounded-full px-3 py-1.5 shadow-lg flex items-center gap-2 z-20">
           <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
           <span className="text-xs font-medium text-gray-700">4 drivers nearby</span>
         </div>

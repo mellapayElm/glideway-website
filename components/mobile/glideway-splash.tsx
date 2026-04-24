@@ -19,7 +19,7 @@ export function GlideWaySplash() {
       <div className="relative z-10 px-6 py-12 max-w-md w-full flex flex-col items-center text-center">
         {/* Logo Animation */}
         <div className={`mb-8 transition-all duration-1000 ${showContent ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}>
-          <GlidewayLogo variant="icon" size="lg" />
+          <GlidewayLogo variant="full" size="xl" />
         </div>
 
         {/* Main Heading */}

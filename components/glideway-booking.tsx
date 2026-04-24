@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { GlideWayMap } from "./glideway-map"
 
 interface RideType {
   id: string
@@ -78,10 +79,6 @@ export function GlideWayBooking() {
   const mapInstance = useRef<google.maps.Map | null>(null)
   const directionsService = useRef<google.maps.DirectionsService | null>(null)
   const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null)
-  const pickupAutocomplete = useRef<google.maps.places.Autocomplete | null>(null)
-  const dropoffAutocomplete = useRef<google.maps.places.Autocomplete | null>(null)
-  const pickupInputRef = useRef<HTMLInputElement>(null)
-  const dropoffInputRef = useRef<HTMLInputElement>(null)
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
@@ -138,30 +135,8 @@ export function GlideWayBooking() {
           }
         })
 
-        // Setup autocomplete
-        if (pickupInputRef.current) {
-          pickupAutocomplete.current = new google.maps.places.Autocomplete(pickupInputRef.current, {
-            types: ["address"]
-          })
-          pickupAutocomplete.current.addListener("place_changed", () => {
-            const place = pickupAutocomplete.current?.getPlace()
-            if (place?.formatted_address) {
-              setPickup(place.formatted_address)
-            }
-          })
-        }
-
-        if (dropoffInputRef.current) {
-          dropoffAutocomplete.current = new google.maps.places.Autocomplete(dropoffInputRef.current, {
-            types: ["address"]
-          })
-          dropoffAutocomplete.current.addListener("place_changed", () => {
-            const place = dropoffAutocomplete.current?.getPlace()
-            if (place?.formatted_address) {
-              setDropoff(place.formatted_address)
-            }
-          })
-        }
+        // Autocomplete removed - using standard text inputs
+        // The Places Autocomplete API is deprecated as of March 2025
 
         // Map click for pickup selection
         map.addListener("click", (event: google.maps.MapMouseEvent) => {
@@ -315,7 +290,6 @@ export function GlideWayBooking() {
         <div className="mb-6 pb-6 border-b border-gray-200">
           <label className="block font-bold text-gray-900 mb-2">Pickup Location</label>
           <input
-            ref={pickupInputRef}
             type="text"
             value={pickup}
             onChange={(e) => setPickup(e.target.value)}
@@ -343,7 +317,6 @@ export function GlideWayBooking() {
 
           <label className="block font-bold text-gray-900 mb-2">Dropoff Location</label>
           <input
-            ref={dropoffInputRef}
             type="text"
             value={dropoff}
             onChange={(e) => setDropoff(e.target.value)}
@@ -520,31 +493,14 @@ export function GlideWayBooking() {
 
       {/* Right Panel - Map */}
       <div className="flex-1 relative min-h-[400px] lg:min-h-0">
-        <div ref={mapRef} className="w-full h-full" />
-        
-        {!mapLoaded && !mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4" />
-              <p className="text-gray-600">Loading map...</p>
-            </div>
-          </div>
-        )}
-
-        {mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center p-8">
-              <p className="text-red-600 font-semibold mb-2">Map Error</p>
-              <p className="text-gray-600 text-sm">{mapError}</p>
-            </div>
-          </div>
-        )}
-
-        {mapPickupMode && (
-          <div className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-10 animate-pulse">
-            Click on map to set pickup location
-          </div>
-        )}
+        <GlideWayMap
+          onPickupSelect={(lat, lng) => {
+            console.log("[v0] Pickup selected:", { lat, lng })
+          }}
+          onDropoffSelect={(lat, lng) => {
+            console.log("[v0] Dropoff selected:", { lat, lng })
+          }}
+        />
       </div>
     </div>
   )

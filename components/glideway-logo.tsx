@@ -15,7 +15,7 @@ interface LogoProps {
 // The official GlideWay icon SVG - circle with motion lines and road path
 function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 120 120" className="flex-shrink-0">
+    <svg width={size} height={size} viewBox="0 0 140 140" className="flex-shrink-0">
       <defs>
         <linearGradient id={`glideGrad${id}`} x1="0%" y1="100%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#22c55e" />
@@ -24,42 +24,42 @@ function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }
         </linearGradient>
       </defs>
 
-      {/* Outer circle arc - partial circle open at bottom left */}
+      {/* Main circular arc - green gradient from top to right */}
       <path
-        d="M 25 85 A 50 50 0 1 1 60 110"
+        d="M 35 50 A 45 45 0 0 1 105 105"
         stroke={`url(#glideGrad${id})`}
-        strokeWidth="6"
+        strokeWidth="8"
         fill="none"
         strokeLinecap="round"
       />
 
-      {/* Motion speed lines - left side */}
-      <line x1="5" y1="50" x2="22" y2="50" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" />
-      <line x1="8" y1="65" x2="20" y2="65" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
-      <line x1="10" y1="35" x2="20" y2="35" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.5" />
+      {/* Motion speed lines - left side, decreasing */}
+      <line x1="8" y1="55" x2="32" y2="55" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" />
+      <line x1="12" y1="75" x2="30" y2="75" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" opacity="0.75" />
+      <line x1="16" y1="40" x2="28" y2="40" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
 
-      {/* Road/path - white curved road going up and right */}
+      {/* White curved road - from lower left to upper right inside circle */}
       <path
-        d="M 40 90 Q 45 70 55 60 Q 70 45 90 40"
+        d="M 45 95 Q 55 75 70 55 Q 85 35 105 30"
         stroke="#ffffff"
-        strokeWidth="10"
+        strokeWidth="12"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {/* Road center dashed line */}
+      {/* Road center dashed line - green */}
       <path
-        d="M 42 88 Q 47 70 57 60 Q 70 47 88 42"
+        d="M 45 95 Q 55 75 70 55 Q 85 35 105 30"
         stroke="#7CFF3A"
-        strokeWidth="2"
+        strokeWidth="2.5"
         fill="none"
         strokeLinecap="round"
-        strokeDasharray="4,4"
+        strokeDasharray="5,5"
       />
 
-      {/* Destination point */}
-      <circle cx="90" cy="40" r="5" fill="#7CFF3A" />
+      {/* Destination marker - top right */}
+      <circle cx="106" cy="28" r="6" fill="#7CFF3A" />
     </svg>
   )
 }

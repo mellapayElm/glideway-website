@@ -76,8 +76,14 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&v=weekly`
     script.async = true
     script.defer = true
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error("Failed to load Google Maps script"))
+    script.onload = () => {
+      console.log("[GlideWay] Google Maps API loaded successfully")
+      resolve()
+    }
+    script.onerror = () => {
+      console.error("[GlideWay] Failed to load Google Maps - check API key activation in Google Cloud Console")
+      reject(new Error("Failed to load Google Maps script - Ensure Maps JavaScript API is enabled"))
+    }
     document.head.appendChild(script)
   })
 

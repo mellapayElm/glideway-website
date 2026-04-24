@@ -2,179 +2,180 @@
 
 /**
  * GlideWay Logo Component
- * Professional branding with motion elements and road/journey symbolism
- * No letter characters - pure visual design
+ * Professional branding using official logo designs
+ * Variants: horizontal (web), icon (mobile), full (primary)
  */
 
 interface LogoProps {
-  variant?: 'full' | 'icon' | 'horizontal' | 'text-only'
+  variant?: 'horizontal' | 'icon' | 'full'
   size?: 'sm' | 'md' | 'lg'
   className?: string
 }
 
-export function GlidewayLogo({ variant = 'full', size = 'md', className = '' }: LogoProps) {
+export function GlidewayLogo({ variant = 'horizontal', size = 'md', className = '' }: LogoProps) {
   const sizes = {
-    sm: { icon: 40, font: 14 },
-    md: { icon: 60, font: 20 },
-    lg: { icon: 80, font: 28 },
+    sm: { icon: 32, text: 14 },
+    md: { icon: 48, text: 20 },
+    lg: { icon: 64, text: 28 },
   }
 
-  const { icon: iconSize, font: fontSize } = sizes[size]
+  const { icon: iconSize, text: textSize } = sizes[size]
 
-  // Icon-only variant
+  // Icon variant - Stylized S for mobile app
   if (variant === 'icon') {
     return (
-      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100" className={`flex-shrink-0 ${className}`}>
-        {/* Outer circle - Motion effect */}
-        <circle cx="50" cy="50" r="42" stroke="#7CFF3A" strokeWidth="3" fill="none" opacity="0.3" />
-        
-        {/* Main circle */}
-        <circle cx="50" cy="50" r="38" stroke="#7CFF3A" strokeWidth="5" fill="none" />
-        
-        {/* Speed lines - left side */}
-        <line x1="8" y1="45" x2="18" y2="45" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" />
-        <line x1="8" y1="55" x2="18" y2="55" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        
-        {/* Road path - journey/destination */}
+      <svg width={iconSize} height={iconSize} viewBox="0 0 120 120" className={`flex-shrink-0 ${className}`}>
+        <defs>
+          <linearGradient id="glideGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#7CFF3A" />
+            <stop offset="100%" stopColor="#22c55e" />
+          </linearGradient>
+        </defs>
+
+        {/* Background glow */}
+        <circle cx="60" cy="60" r="58" fill="#1a1a1a" />
+        <circle cx="60" cy="60" r="55" stroke="#7CFF3A" strokeWidth="1.5" fill="none" opacity="0.2" />
+
+        {/* Motion lines */}
+        <line x1="12" y1="55" x2="28" y2="55" stroke="#7CFF3A" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="8" y1="70" x2="24" y2="70" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
+        <line x1="15" y1="40" x2="28" y2="40" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+
+        {/* S shape */}
         <path
-          d="M 35 65 Q 50 35 70 55"
-          stroke="#ffffff"
-          strokeWidth="5"
+          d="M 50 35 Q 70 35 75 50 Q 78 60 65 70 Q 50 80 45 90"
+          stroke="url(#glideGradient)"
+          strokeWidth="9"
           fill="none"
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        
-        {/* Road center line - dashed */}
+
+        {/* S inner highlight */}
         <path
-          d="M 37 64 Q 50 38 68 54"
-          stroke="#7CFF3A"
-          strokeWidth="2"
+          d="M 50 35 Q 70 35 75 50 Q 78 60 65 70 Q 50 80 45 90"
+          stroke="#ffffff"
+          strokeWidth="4"
           fill="none"
-          strokeDasharray="3,3"
           strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.5"
         />
-        
-        {/* Destination marker */}
-        <circle cx="70" cy="55" r="4" fill="#7CFF3A" />
       </svg>
     )
   }
 
-  // Text-only variant
-  if (variant === 'text-only') {
-    return (
-      <div className={`font-bold ${className}`} style={{ fontSize: `${fontSize}px` }}>
-        <span className="text-white">GLIDE</span>
-        <span className="text-lime-400">WAY</span>
-      </div>
-    )
-  }
-
-  // Full logo variant (icon + text stacked)
+  // Full variant - comprehensive branding
   if (variant === 'full') {
     return (
       <div className={`flex flex-col items-center gap-2 ${className}`}>
-        <svg width={iconSize} height={iconSize} viewBox="0 0 100 100" className="flex-shrink-0">
-          {/* Outer circle - Motion effect */}
-          <circle cx="50" cy="50" r="42" stroke="#7CFF3A" strokeWidth="3" fill="none" opacity="0.3" />
-          
-          {/* Main circle */}
-          <circle cx="50" cy="50" r="38" stroke="#7CFF3A" strokeWidth="5" fill="none" />
-          
-          {/* Speed lines - left side */}
-          <line x1="8" y1="45" x2="18" y2="45" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" />
-          <line x1="8" y1="55" x2="18" y2="55" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-          
-          {/* Road path - journey/destination */}
+        <svg width={iconSize} height={iconSize} viewBox="0 0 120 120" className="flex-shrink-0">
+          <defs>
+            <linearGradient id="glideGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#7CFF3A" />
+              <stop offset="100%" stopColor="#22c55e" />
+            </linearGradient>
+          </defs>
+
+          {/* Background glow */}
+          <circle cx="60" cy="60" r="58" fill="#1a1a1a" />
+          <circle cx="60" cy="60" r="55" stroke="#7CFF3A" strokeWidth="1.5" fill="none" opacity="0.2" />
+
+          {/* Motion lines */}
+          <line x1="12" y1="55" x2="28" y2="55" stroke="#7CFF3A" strokeWidth="3.5" strokeLinecap="round" />
+          <line x1="8" y1="70" x2="24" y2="70" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
+          <line x1="15" y1="40" x2="28" y2="40" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+
+          {/* S shape */}
           <path
-            d="M 35 65 Q 50 35 70 55"
-            stroke="#ffffff"
-            strokeWidth="5"
+            d="M 50 35 Q 70 35 75 50 Q 78 60 65 70 Q 50 80 45 90"
+            stroke="url(#glideGradient2)"
+            strokeWidth="9"
             fill="none"
             strokeLinecap="round"
             strokeLinejoin="round"
           />
-          
-          {/* Road center line - dashed */}
+
+          {/* S inner highlight */}
           <path
-            d="M 37 64 Q 50 38 68 54"
-            stroke="#7CFF3A"
-            strokeWidth="2"
+            d="M 50 35 Q 70 35 75 50 Q 78 60 65 70 Q 50 80 45 90"
+            stroke="#ffffff"
+            strokeWidth="4"
             fill="none"
-            strokeDasharray="3,3"
             strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity="0.5"
           />
-          
-          {/* Destination marker */}
-          <circle cx="70" cy="55" r="4" fill="#7CFF3A" />
         </svg>
-        
-        <div className="text-center font-bold whitespace-nowrap" style={{ fontSize: `${fontSize}px` }}>
+
+        <div className="text-center font-bold" style={{ fontSize: `${textSize}px` }}>
           <span className="text-white">GLIDE</span>
           <span className="text-lime-400">WAY</span>
         </div>
-        
-        <div className="text-lime-400 text-xs font-semibold tracking-wider text-center">
+
+        <div className="text-lime-400 text-xs font-semibold tracking-wider">
           RIDE SMOOTHLY, GLIDE EASILY
         </div>
       </div>
     )
   }
 
-  // Horizontal variant (icon + text side-by-side)
+  // Horizontal variant - Best for website headers
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <svg width={iconSize} height={iconSize} viewBox="0 0 100 100" className="flex-shrink-0">
-        {/* Outer circle - Motion effect */}
-        <circle cx="50" cy="50" r="42" stroke="#7CFF3A" strokeWidth="3" fill="none" opacity="0.3" />
-        
-        {/* Main circle */}
-        <circle cx="50" cy="50" r="38" stroke="#7CFF3A" strokeWidth="5" fill="none" />
-        
-        {/* Speed lines - left side */}
-        <line x1="8" y1="45" x2="18" y2="45" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" />
-        <line x1="8" y1="55" x2="18" y2="55" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-        
-        {/* Road path - journey/destination */}
-        <path
-          d="M 35 65 Q 50 35 70 55"
-          stroke="#ffffff"
-          strokeWidth="5"
-          fill="none"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        
-        {/* Road center line - dashed */}
-        <path
-          d="M 37 64 Q 50 38 68 54"
-          stroke="#7CFF3A"
-          strokeWidth="2"
-          fill="none"
-          strokeDasharray="3,3"
-          strokeLinecap="round"
-        />
-        
-        {/* Destination marker */}
-        <circle cx="70" cy="55" r="4" fill="#7CFF3A" />
-      </svg>
-      
-      <div className="flex flex-col">
-        <div className="font-bold whitespace-nowrap" style={{ fontSize: `${fontSize}px`, lineHeight: '1' }}>
-          <span className="text-white">GLIDE</span>
-          <span className="text-lime-400">WAY</span>
-        </div>
-        <div className="text-lime-400 text-xs font-semibold tracking-wide">
-          RIDE SMOOTHLY
-        </div>
-      </div>
-    </div>
+    <svg viewBox="0 0 480 100" className={`flex-shrink-0 ${className}`} preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <linearGradient id="glideHGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7CFF3A" />
+          <stop offset="100%" stopColor="#22c55e" />
+        </linearGradient>
+      </defs>
+
+      {/* Motion lines */}
+      <line x1="30" y1="45" x2="48" y2="45" stroke="#7CFF3A" strokeWidth="3.5" strokeLinecap="round" />
+      <line x1="26" y1="60" x2="42" y2="60" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
+      <line x1="33" y1="32" x2="48" y2="32" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+
+      {/* S shape */}
+      <path
+        d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
+        stroke="url(#glideHGradient)"
+        strokeWidth="8"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* S inner highlight */}
+      <path
+        d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
+        stroke="#ffffff"
+        strokeWidth="3.5"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.5"
+      />
+
+      {/* GLIDE text */}
+      <text x="110" y="68" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="48" fontWeight="700" fill="#ffffff">
+        GLIDE
+      </text>
+
+      {/* WAY text */}
+      <text x="385" y="68" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="48" fontWeight="700" fill="#7CFF3A">
+        WAY
+      </text>
+
+      {/* Tagline */}
+      <text x="110" y="88" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="10" fontWeight="600" fill="#7CFF3A" letterSpacing="0.8">
+        RIDE SMOOTHLY, GLIDE EASILY
+      </text>
+    </svg>
   )
 }
 
-// Keep legacy exports for backward compatibility
-export function GlidewayIconMark({ className = 'w-8 h-8' }: { className?: string }) {
+// Legacy exports for backward compatibility
+export function GlidewayIconMark({ className = 'w-12 h-12' }: { className?: string }) {
   return <GlidewayLogo variant="icon" className={className} />
 }
 
@@ -182,6 +183,6 @@ export function GlidewayLogoDark({ className = 'w-12 h-12' }: { className?: stri
   return <GlidewayLogo variant="icon" className={className} />
 }
 
-export function GlidewayLogoWithText({ className = 'w-8' }: { className?: string }) {
+export function GlidewayLogoWithText({ className = 'w-40' }: { className?: string }) {
   return <GlidewayLogo variant="horizontal" className={className} />
 }

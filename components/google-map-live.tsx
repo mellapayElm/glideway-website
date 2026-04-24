@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Loader } from "@googlemaps/js-api-loader";
-import { MapPin, Car, Navigation } from "lucide-react";
+import { MapPin, Car, Navigation, Loader2 } from "lucide-react";
 
 type Props = {
   pickup?: { lat: number; lng: number };
@@ -16,6 +15,29 @@ type Props = {
 
 // Default to Los Angeles if no location provided
 const DEFAULT_CENTER = { lat: 34.0522, lng: -118.2437 };
+
+// Global script loading state
+let googleMapsPromise: Promise<void> | null = null;
+
+function loadGoogleMaps(apiKey: string): Promise<void> {
+  if (googleMapsPromise) return googleMapsPromise;
+  
+  if (typeof window !== "undefined" && window.google?.maps) {
+    return Promise.resolve();
+  }
+
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&v=weekly`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load Google Maps script"));
+    document.head.appendChild(script);
+  });
+
+  return googleMapsPromise;
+}
 
 export default function GoogleMapLive({ 
   pickup, 
@@ -39,6 +61,7 @@ export default function GoogleMapLive({
 
   // Create custom marker icons
   const createPickupIcon = useCallback(() => {
+    if (!window.google?.maps) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
       fillColor: "#22c55e",
@@ -50,6 +73,7 @@ export default function GoogleMapLive({
   }, []);
 
   const createDropoffIcon = useCallback(() => {
+    if (!window.google?.maps) return null;
     return {
       path: google.maps.SymbolPath.CIRCLE,
       fillColor: "#ef4444",
@@ -61,8 +85,9 @@ export default function GoogleMapLive({
   }, []);
 
   const createDriverIcon = useCallback((heading: number = 0) => {
+    if (!window.google?.maps) return null;
     return {
-      path: "M12 2L4 20h16L12 2z", // Arrow/car shape
+      path: "M12 2L4 20h16L12 2z",
       fillColor: "#22c55e",
       fillOpacity: 1,
       strokeColor: "#ffffff",
@@ -81,6 +106,7 @@ export default function GoogleMapLive({
       if (!mapRef.current) return;
 
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
       if (!apiKey) {
         setError("Google Maps API key is required. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.");
         setIsLoading(false);
@@ -88,13 +114,8 @@ export default function GoogleMapLive({
       }
 
       try {
-        const loader = new Loader({
-          apiKey,
-          version: "weekly",
-          libraries: ["places", "geometry"],
-        });
-
-        await loader.load();
+        await loadGoogleMaps(apiKey);
+        
         if (!isMounted || !mapRef.current) return;
 
         const center = driver || pickup || DEFAULT_CENTER;
@@ -107,7 +128,6 @@ export default function GoogleMapLive({
           fullscreenControl: false,
           zoomControl: true,
           styles: [
-            // Dark mode styling
             { elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a2e" }] },
             { elementType: "labels.text.fill", stylers: [{ color: "#8b8b8b" }] },
@@ -122,7 +142,6 @@ export default function GoogleMapLive({
 
         mapInstanceRef.current = map;
 
-        // Initialize directions renderer for route
         const directionsRenderer = new google.maps.DirectionsRenderer({
           map,
           suppressMarkers: true,
@@ -138,8 +157,10 @@ export default function GoogleMapLive({
         onMapReady?.(map);
 
       } catch (err) {
+        console.error("[GoogleMapLive] Error:", err);
         if (isMounted) {
-          setError("Failed to load Google Maps. Please check your API key.");
+          const errorMessage = err instanceof Error ? err.message : "Unknown error";
+          setError(`Failed to load Google Maps: ${errorMessage}`);
           setIsLoading(false);
         }
       }
@@ -155,20 +176,22 @@ export default function GoogleMapLive({
   // Update markers when locations change
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || isLoading) return;
+    if (!map || isLoading || !window.google?.maps) return;
 
     // Update pickup marker
     if (pickup) {
       if (markersRef.current.pickup) {
         markersRef.current.pickup.setPosition(pickup);
       } else {
-        markersRef.current.pickup = new google.maps.Marker({
-          position: pickup,
-          map,
-          icon: createPickupIcon(),
-          title: "Pickup Location",
-          zIndex: 100,
-        });
+        const icon = createPickupIcon();
+        if (icon) {
+          markersRef.current.pickup = new google.maps.Marker({
+            position: pickup,
+            map,
+            icon,
+            title: "Pickup",
+          });
+        }
       }
     }
 
@@ -177,56 +200,48 @@ export default function GoogleMapLive({
       if (markersRef.current.dropoff) {
         markersRef.current.dropoff.setPosition(dropoff);
       } else {
-        markersRef.current.dropoff = new google.maps.Marker({
-          position: dropoff,
-          map,
-          icon: createDropoffIcon(),
-          title: "Drop-off Location",
-          zIndex: 100,
-        });
+        const icon = createDropoffIcon();
+        if (icon) {
+          markersRef.current.dropoff = new google.maps.Marker({
+            position: dropoff,
+            map,
+            icon,
+            title: "Dropoff",
+          });
+        }
       }
     }
 
     // Update driver marker
     if (driver) {
+      const icon = createDriverIcon(driver.heading);
       if (markersRef.current.driver) {
         markersRef.current.driver.setPosition(driver);
-        markersRef.current.driver.setIcon(createDriverIcon(driver.heading || 0));
-      } else {
+        if (icon) markersRef.current.driver.setIcon(icon);
+      } else if (icon) {
         markersRef.current.driver = new google.maps.Marker({
           position: driver,
           map,
-          icon: createDriverIcon(driver.heading || 0),
-          title: `Driver ${driver.speedKph ? `- ${Math.round(driver.speedKph)} km/h` : ""}`,
-          zIndex: 200,
+          icon,
+          title: "Driver",
         });
       }
-      // Center on driver
-      map.panTo(driver);
     }
 
     // Fit bounds to show all markers
-    if (pickup || dropoff || driver) {
-      const bounds = new google.maps.LatLngBounds();
-      if (pickup) bounds.extend(pickup);
-      if (dropoff) bounds.extend(dropoff);
-      if (driver) bounds.extend(driver);
-      
-      // Only fit bounds if we have multiple points
-      const hasMultiplePoints = [pickup, dropoff, driver].filter(Boolean).length > 1;
-      if (hasMultiplePoints) {
-        map.fitBounds(bounds, { padding: 60 });
-      }
+    const bounds = new google.maps.LatLngBounds();
+    if (pickup) bounds.extend(pickup);
+    if (dropoff) bounds.extend(dropoff);
+    if (driver) bounds.extend(driver);
+    
+    if (!bounds.isEmpty()) {
+      map.fitBounds(bounds, { padding: 60 });
     }
-
   }, [pickup, dropoff, driver, isLoading, createPickupIcon, createDropoffIcon, createDriverIcon]);
 
-  // Draw route between pickup and dropoff
+  // Draw route
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    const directionsRenderer = directionsRendererRef.current;
-    
-    if (!map || !directionsRenderer || !showRoute || !pickup || !dropoff || isLoading) return;
+    if (!showRoute || !pickup || !dropoff || !directionsRendererRef.current || !window.google?.maps) return;
 
     const directionsService = new google.maps.DirectionsService();
     
@@ -238,7 +253,7 @@ export default function GoogleMapLive({
       },
       (result, status) => {
         if (status === google.maps.DirectionsStatus.OK && result) {
-          directionsRenderer.setDirections(result);
+          directionsRendererRef.current?.setDirections(result);
         }
       }
     );
@@ -247,89 +262,51 @@ export default function GoogleMapLive({
   if (error) {
     return (
       <div 
-        className={`relative rounded-2xl overflow-hidden bg-slate-800 border border-slate-700 flex flex-col items-center justify-center ${className}`}
+        className={`relative bg-slate-900 rounded-lg flex items-center justify-center ${className}`}
         style={{ height }}
       >
         <div className="text-center p-6">
-          <MapPin className="w-12 h-12 text-slate-500 mx-auto mb-4" />
+          <MapPin className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <p className="text-slate-400 text-sm max-w-xs">{error}</p>
-          <p className="text-slate-500 text-xs mt-2">
-            Visit the Google Cloud Console to set up your Maps API key.
-          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`relative rounded-2xl overflow-hidden ${className}`} style={{ height }}>
-      {/* Loading overlay */}
+    <div className={`relative ${className}`} style={{ height }}>
       {isLoading && (
-        <div className="absolute inset-0 bg-slate-800 flex items-center justify-center z-10">
-          <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-slate-400">Loading map...</span>
+        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 rounded-lg">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-2" />
+            <p className="text-slate-400 text-sm">Loading map...</p>
           </div>
         </div>
       )}
-      
-      {/* Map container */}
-      <div
-        ref={mapRef}
-        className="w-full h-full"
+      <div 
+        ref={mapRef} 
+        className="w-full h-full rounded-lg"
         style={{ minHeight: height }}
       />
-
-      {/* GPS coordinates overlay */}
-      {driver && (
-        <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50">
-          <div className="flex items-center gap-2 mb-1">
-            <Navigation className="w-4 h-4 text-primary" />
-            <span className="text-xs font-medium text-primary">Live GPS</span>
-          </div>
-          <div className="space-y-0.5 text-xs">
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-400">Lat:</span>
-              <span className="font-mono text-white">{driver.lat.toFixed(6)}</span>
-            </div>
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-400">Lng:</span>
-              <span className="font-mono text-white">{driver.lng.toFixed(6)}</span>
-            </div>
-            {driver.heading !== undefined && (
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-400">Heading:</span>
-                <span className="font-mono text-white">{Math.round(driver.heading)}°</span>
-              </div>
-            )}
-            {driver.speedKph !== undefined && (
-              <div className="flex justify-between gap-4">
-                <span className="text-slate-400">Speed:</span>
-                <span className="font-mono text-white">{Math.round(driver.speedKph)} km/h</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="absolute bottom-3 left-3 bg-slate-900/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700/50">
-        <div className="flex items-center gap-4 text-xs">
+      
+      {/* Map Legend */}
+      <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-3 text-xs">
+        <div className="flex items-center gap-3">
           {pickup && (
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 border border-white" />
+              <div className="w-3 h-3 rounded-full bg-emerald-500" />
               <span className="text-slate-300">Pickup</span>
             </div>
           )}
           {dropoff && (
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500 border border-white" />
-              <span className="text-slate-300">Drop-off</span>
+              <div className="w-3 h-3 rounded-full bg-red-500" />
+              <span className="text-slate-300">Dropoff</span>
             </div>
           )}
           {driver && (
             <div className="flex items-center gap-1.5">
-              <Car className="w-3 h-3 text-primary" />
+              <Car className="w-3 h-3 text-emerald-400" />
               <span className="text-slate-300">Driver</span>
             </div>
           )}
@@ -338,3 +315,6 @@ export default function GoogleMapLive({
     </div>
   );
 }
+
+// Also export a named export for backwards compatibility
+export { GoogleMapLive };

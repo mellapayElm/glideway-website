@@ -1,6 +1,7 @@
 "use client"
 
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { Car, Users, Briefcase, Crown, Zap, Shield, Star, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
@@ -67,6 +68,13 @@ const pricingFeatures = [
 ]
 
 export function RideTypesSection() {
+  const router = useRouter()
+
+  const handleSelectRide = (rideType: string) => {
+    // Navigate to booking section or rider app
+    router.push(`/?ride=${rideType}#booking`)
+  }
+
   return (
     <section id="ride-types" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -96,7 +104,7 @@ export function RideTypesSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
             >
-              <Card className={`relative h-full bg-card border-border hover:border-primary/50 transition-all duration-300 ${
+              <Card className={`relative h-full bg-card border-border hover:border-primary/50 transition-all duration-300 cursor-pointer hover:shadow-lg ${
                 ride.popular ? "ring-2 ring-primary" : ""
               }`}>
                 {ride.popular && (
@@ -145,6 +153,7 @@ export function RideTypesSection() {
                 </CardContent>
                 <CardFooter>
                   <Button 
+                    onClick={() => handleSelectRide(ride.id)}
                     className={`w-full ${
                       ride.popular 
                         ? "bg-primary text-primary-foreground hover:bg-primary/90" 

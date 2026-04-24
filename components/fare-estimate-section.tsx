@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 import { MapPin, Navigation, Car, Clock, DollarSign, ArrowRight, CheckCircle2, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +15,7 @@ const rideOptions = [
 ]
 
 export function FareEstimateSection() {
+  const router = useRouter()
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
   const [selectedRide, setSelectedRide] = useState("Comfort")
@@ -25,10 +27,13 @@ export function FareEstimateSection() {
     }
   }
 
+  const handleBookRide = () => {
+    router.push(`/rider?pickup=${encodeURIComponent(pickup)}&dropoff=${encodeURIComponent(dropoff)}&ride=${selectedRide.toLowerCase()}`)
+  }
+
   return (
     <section id="fare-estimate" className="py-20 bg-secondary/30 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -46,7 +51,6 @@ export function FareEstimateSection() {
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* Fare Calculator */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -59,7 +63,6 @@ export function FareEstimateSection() {
               Fare Estimate Calculator
             </h3>
 
-            {/* Location Inputs */}
             <div className="space-y-4 mb-6">
               <div className="relative">
                 <div className="absolute left-3 top-1/2 -translate-y-1/2">
@@ -85,7 +88,6 @@ export function FareEstimateSection() {
               </div>
             </div>
 
-            {/* Ride Options */}
             <div className="space-y-3 mb-6">
               {rideOptions.map((option) => (
                 <button
@@ -136,7 +138,6 @@ export function FareEstimateSection() {
             </Button>
           </motion.div>
 
-          {/* Estimate Result / Info Panel */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
@@ -171,7 +172,10 @@ export function FareEstimateSection() {
                     <span className="font-semibold text-foreground">4.2 miles</span>
                   </div>
                 </div>
-                <Button className="w-full mt-6 bg-primary text-primary-foreground">
+                <Button 
+                  onClick={handleBookRide}
+                  className="w-full mt-6 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
                   Book This Ride
                 </Button>
               </div>
@@ -201,7 +205,6 @@ export function FareEstimateSection() {
               </div>
             )}
 
-            {/* Trust Badges */}
             <div className="grid grid-cols-3 gap-4">
               {[
                 { icon: Shield, label: "Secure Payment" },

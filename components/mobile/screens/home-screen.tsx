@@ -350,13 +350,26 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   if (isTracking && activeRide) {
     return (
       <div className="flex flex-col h-full bg-gray-950">
-        {/* Map */}
-        <div ref={mapRef} className="flex-1 relative">
-          {!mapLoaded && (
-            <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-              <div className="animate-spin w-8 h-8 border-2 border-lime-400 border-t-transparent rounded-full" />
+        {/* Map with Fallback */}
+        <div className="flex-1 relative">
+          {/* Fallback background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900">
+            <div className="absolute inset-0 opacity-30">
+              <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
+                <defs>
+                  <pattern id="trackingGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1f2937" strokeWidth="1"/>
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#trackingGrid)" />
+                <path d="M 50 150 Q 150 100 200 200 T 350 250" stroke="#7CFF3A" strokeWidth="4" fill="none" strokeDasharray="10,5"/>
+                <circle cx="80" cy="140" r="10" fill="#7CFF3A"/>
+                <circle cx="320" cy="260" r="10" fill="#ef4444"/>
+              </svg>
             </div>
-          )}
+          </div>
+          {/* Google Maps container */}
+          <div ref={mapRef} className="absolute inset-0 z-[1]" />
         </div>
 
         {/* Ride Status Card */}
@@ -412,17 +425,37 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
 
   return (
     <div className="flex flex-col h-full bg-gray-950 relative overflow-hidden">
-      {/* Map Background */}
-      <div ref={mapRef} className="absolute inset-0">
-        {!mapLoaded && (
-          <div className="absolute inset-0 bg-gray-900 flex items-center justify-center">
-            <div className="animate-spin w-8 h-8 border-2 border-lime-400 border-t-transparent rounded-full" />
-          </div>
-        )}
+      {/* Map Background / Fallback */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900">
+        {/* Decorative map-like pattern as fallback */}
+        <div className="absolute inset-0 opacity-30">
+          <svg className="w-full h-full" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+            {/* Grid lines to simulate map streets */}
+            <defs>
+              <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1f2937" strokeWidth="1"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#mapGrid)" />
+            {/* Simulated roads */}
+            <path d="M 0 200 Q 100 180 200 200 T 400 200" stroke="#374151" strokeWidth="8" fill="none"/>
+            <path d="M 150 0 Q 170 150 150 300 T 170 600" stroke="#374151" strokeWidth="6" fill="none"/>
+            <path d="M 50 400 Q 200 350 400 420" stroke="#374151" strokeWidth="4" fill="none"/>
+            {/* User location indicator */}
+            <circle cx="200" cy="250" r="12" fill="#7CFF3A" opacity="0.8"/>
+            <circle cx="200" cy="250" r="24" fill="#7CFF3A" opacity="0.2"/>
+            <circle cx="200" cy="250" r="40" fill="#7CFF3A" opacity="0.1"/>
+          </svg>
+        </div>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-gray-950/80 via-transparent to-gray-950/90" />
       </div>
+      
+      {/* Google Maps container (will show if API works) */}
+      <div ref={mapRef} className="absolute inset-0 z-[1]" />
 
       {/* Content Overlay */}
-      <div className="relative z-10 flex flex-col h-full">
+      <div className="relative z-[5] flex flex-col h-full">
         {/* Header */}
         <div className="p-4">
           <h1 className="text-3xl font-bold text-white mb-4">{greeting}</h1>

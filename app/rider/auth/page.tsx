@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 type AuthMode = "login" | "register" | "verify" | "forgot"
 
@@ -117,7 +118,7 @@ export default function RiderAuthPage() {
               <ArrowLeft className="w-6 h-6" />
             </Link>
           )}
-          <span className="text-lg font-bold tracking-tight"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></span>
+          <GlidewayLogo className="h-8" />
           <div className="w-10" />
         </div>
       </header>

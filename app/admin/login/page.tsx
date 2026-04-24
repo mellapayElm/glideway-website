@@ -91,7 +91,7 @@ export default function ManagementPortalLogin() {
           {/* Logo + Brand */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-5">
-              <span className="text-3xl font-bold tracking-tight"><span className="text-white">GLIDE</span><span className="text-emerald-400">WAY</span></span>
+              <img src="/logo.png" alt="GlideWay Logo" className="h-20 w-auto object-contain" />
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight">GlideWay</h1>
             <p className="text-emerald-400 text-sm font-semibold tracking-widest uppercase mt-1">Management Portal</p>

@@ -122,55 +122,57 @@ export function GlidewayLogo({ variant = 'horizontal', size = 'md', className = 
 
   // Horizontal variant - Best for website headers
   return (
-    <svg viewBox="0 0 480 100" className={`flex-shrink-0 ${className}`} preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <linearGradient id="glideHGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#7CFF3A" />
-          <stop offset="100%" stopColor="#22c55e" />
-        </linearGradient>
-      </defs>
+    <div className={`flex items-center gap-3 ${className}`}>
+      {/* Icon part */}
+      <svg width="48" height="48" viewBox="0 0 120 120" className="flex-shrink-0">
+        <defs>
+          <linearGradient id="glideHGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#7CFF3A" />
+            <stop offset="100%" stopColor="#22c55e" />
+          </linearGradient>
+        </defs>
 
-      {/* Motion lines */}
-      <line x1="30" y1="45" x2="48" y2="45" stroke="#7CFF3A" strokeWidth="3.5" strokeLinecap="round" />
-      <line x1="26" y1="60" x2="42" y2="60" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
-      <line x1="33" y1="32" x2="48" y2="32" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
+        {/* Background glow */}
+        <circle cx="60" cy="60" r="58" fill="#1a1a1a" />
+        <circle cx="60" cy="60" r="55" stroke="#7CFF3A" strokeWidth="1.5" fill="none" opacity="0.2" />
 
-      {/* S shape */}
-      <path
-        d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
-        stroke="url(#glideHGradient)"
-        strokeWidth="8"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+        {/* Motion lines */}
+        <line x1="30" y1="45" x2="48" y2="45" stroke="#7CFF3A" strokeWidth="3.5" strokeLinecap="round" />
+        <line x1="26" y1="60" x2="42" y2="60" stroke="#7CFF3A" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
+        <line x1="33" y1="32" x2="48" y2="32" stroke="#7CFF3A" strokeWidth="2" strokeLinecap="round" opacity="0.4" />
 
-      {/* S inner highlight */}
-      <path
-        d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
-        stroke="#ffffff"
-        strokeWidth="3.5"
-        fill="none"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.5"
-      />
+        {/* S shape */}
+        <path
+          d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
+          stroke="url(#glideHGradient)"
+          strokeWidth="8"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
 
-      {/* GLIDE text */}
-      <text x="110" y="68" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="48" fontWeight="700" fill="#ffffff">
-        GLIDE
-      </text>
+        {/* S inner highlight */}
+        <path
+          d="M 60 28 Q 78 28 85 40 Q 90 50 78 60 Q 65 70 60 80"
+          stroke="#ffffff"
+          strokeWidth="3.5"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.5"
+        />
+      </svg>
 
-      {/* WAY text */}
-      <text x="385" y="68" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="48" fontWeight="700" fill="#7CFF3A">
-        WAY
-      </text>
-
-      {/* Tagline */}
-      <text x="110" y="88" fontFamily="'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" fontSize="10" fontWeight="600" fill="#7CFF3A" letterSpacing="0.8">
-        RIDE SMOOTHLY, GLIDE EASILY
-      </text>
-    </svg>
+      {/* Text part */}
+      <div className="flex flex-col">
+        <div className="font-bold text-white text-xl leading-tight">
+          GLIDE<span className="text-lime-400">WAY</span>
+        </div>
+        <div className="text-lime-400 text-xs font-semibold tracking-wide">
+          RIDE SMOOTHLY
+        </div>
+      </div>
+    </div>
   )
 }
 

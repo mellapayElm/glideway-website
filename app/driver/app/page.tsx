@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GlidewayLogo } from "@/components/glideway-logo"
 import { Switch } from "@/components/ui/switch"
 import { IncomingRideAlert } from "@/components/incoming-ride-alert"
 

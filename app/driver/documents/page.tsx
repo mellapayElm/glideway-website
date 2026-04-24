@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { GlidewayLogo } from "@/components/glideway-logo"
 
 interface Document {
   id: string

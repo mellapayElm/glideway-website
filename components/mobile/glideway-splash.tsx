@@ -32,37 +32,6 @@ export function GlideWaySplash({ onGetStarted, onLogin }: GlideWaySplashProps) {
         {/* Top spacing */}
         <div className="h-8" />
 
-        {/* Logo Animation */}
-        <div className={`mb-12 transition-all duration-1000 ${showContent ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}>
-          <div className="relative w-20 h-20">
-            {/* Lime green circular emblem */}
-            <svg className="w-full h-full" viewBox="0 0 120 120">
-              <path
-                d="M 60 30 A 40 40 0 0 1 100 70 L 90 80 A 30 30 0 0 0 70 40 Z"
-                fill="#7CFF3A"
-              />
-              {/* Motion lines */}
-              <line x1="10" y1="50" x2="45" y2="50" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" />
-              <line x1="15" y1="70" x2="43" y2="70" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" opacity="0.7" />
-              {/* Road element */}
-              <path
-                d="M 50 75 Q 65 60 80 50"
-                stroke="#ffffff"
-                strokeWidth="10"
-                fill="none"
-                strokeLinecap="round"
-              />
-              <path
-                d="M 50 75 Q 65 60 80 50"
-                stroke="#7CFF3A"
-                strokeWidth="2"
-                fill="none"
-                strokeDasharray="5,5"
-              />
-            </svg>
-          </div>
-        </div>
-
         {/* Main Heading */}
         <div className={`transition-all duration-1000 delay-200 ${showContent ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
           <h1 className="text-4xl font-bold text-white mb-2 leading-tight">

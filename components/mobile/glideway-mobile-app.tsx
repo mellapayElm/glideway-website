@@ -9,9 +9,10 @@ import { PaymentsScreen } from "./screens/payments-screen"
 import { AccountScreen } from "./screens/account-screen"
 import { DriverApp } from "./screens/driver-app"
 import { AdminDashboard } from "./screens/admin-dashboard"
+import { BecomeDriverScreen } from "./screens/become-driver-screen"
 
 type AppMode = "rider" | "driver" | "admin"
-type Screen = "splash" | "login" | "register" | "home" | "activity" | "payments" | "account"
+type Screen = "splash" | "login" | "register" | "become-driver" | "home" | "activity" | "payments" | "account"
 
 export function GlideWayMobileApp() {
   const [appMode, setAppMode] = useState<AppMode>("rider")
@@ -59,6 +60,10 @@ export function GlideWayMobileApp() {
     setCurrentScreen("login")
   }
 
+  const handleBecomeDriver = () => {
+    setCurrentScreen("become-driver")
+  }
+
   const handleLoginComplete = (identifier: string) => {
     console.log("[v0] Login completed with:", identifier)
     setIsLoggedIn(true)
@@ -93,6 +98,23 @@ export function GlideWayMobileApp() {
         <PhoneLoginScreen 
           onBack={() => setCurrentScreen("splash")}
           onContinue={handleLoginComplete}
+          onBecomeDriver={handleBecomeDriver}
+        />
+      )
+    }
+
+    // Show become a driver screen
+    if (currentScreen === "become-driver") {
+      return (
+        <BecomeDriverScreen
+          onBack={() => setCurrentScreen("login")}
+          onComplete={() => {
+            setAppMode("driver")
+            setIsLoggedIn(true)
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('glideway_logged_in', 'true')
+            }
+          }}
         />
       )
     }

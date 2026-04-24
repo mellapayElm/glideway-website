@@ -25,28 +25,26 @@ interface BookingMapPanelProps {
 // Colorado Springs default
 const DEFAULT_CENTER = { lat: 38.8339, lng: -104.8214 }
 
-// Dark map styles matching GlideWay premium theme
-const DARK_MAP_STYLES: google.maps.MapTypeStyle[] = [
-  { elementType: "geometry", stylers: [{ color: "#0c1222" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#0c1222" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
-  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
-  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
-  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#162033" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1a3a2a" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#4ade80" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#0c1222" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2d3a4f" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1e293b" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#94a3b8" }] },
-  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
-  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#475569" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#1e293b" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#64748b" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c3d5e" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#38bdf8" }] },
+// Light/Clean map styles - similar to Uber's clean look
+const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+  { featureType: "administrative.land_parcel", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#c8e6c9" }] },
+  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#4caf50" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road.arterial", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
 ]
 
 export function BookingMapPanel({
@@ -127,11 +125,11 @@ export function BookingMapPanel({
         title: type === "pickup" ? "Pickup" : "Dropoff",
         icon: {
           path: google.maps.SymbolPath.CIRCLE,
-          fillColor: type === "pickup" ? "#22c55e" : "#000000",
+          fillColor: type === "pickup" ? "#000000" : "#000000",
           fillOpacity: 1,
           strokeColor: "#ffffff",
           strokeWeight: 3,
-          scale: 10,
+          scale: 8,
         },
         zIndex: type === "pickup" ? 100 : 99,
         animation: google.maps.Animation.DROP,
@@ -177,7 +175,7 @@ export function BookingMapPanel({
         const map = new google.maps.Map(mapRef.current, {
           center: DEFAULT_CENTER,
           zoom: 13,
-          styles: DARK_MAP_STYLES,
+          styles: LIGHT_MAP_STYLES,
           disableDefaultUI: true,
           zoomControl: true,
           zoomControlOptions: {
@@ -186,13 +184,13 @@ export function BookingMapPanel({
         })
         mapInstanceRef.current = map
 
-        // Directions renderer with green route
+        // Directions renderer with black route
         const renderer = new google.maps.DirectionsRenderer({
           map,
           suppressMarkers: true,
           polylineOptions: {
-            strokeColor: "#22c55e",
-            strokeWeight: 5,
+            strokeColor: "#000000",
+            strokeWeight: 4,
             strokeOpacity: 0.9,
           },
         })
@@ -324,39 +322,39 @@ export function BookingMapPanel({
 
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-30 gap-3">
-          <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-slate-400">Loading map...</span>
+        <div className="absolute inset-0 bg-gray-100 flex flex-col items-center justify-center z-30 gap-3">
+          <div className="w-10 h-10 border-3 border-black border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-gray-500">Loading map...</span>
         </div>
       )}
 
       {/* Error Overlay */}
       {mapsError && (
-        <div className="absolute inset-0 bg-slate-900 flex flex-col items-center justify-center z-30 p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-            <MapPin className="w-8 h-8 text-slate-500" />
+        <div className="absolute inset-0 bg-gray-100 flex flex-col items-center justify-center z-30 p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+            <MapPin className="w-8 h-8 text-gray-400" />
           </div>
-          <p className="text-slate-300 font-medium mb-2">{mapsError}</p>
-          <p className="text-slate-500 text-sm max-w-xs">
+          <p className="text-gray-700 font-medium mb-2">{mapsError}</p>
+          <p className="text-gray-500 text-sm max-w-xs">
             Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables
           </p>
         </div>
       )}
 
-      {/* Floating Booking Card - Uber Style */}
+      {/* Floating Booking Card - Uber Style WHITE THEME */}
       <div className="absolute top-4 left-4 z-20 w-full max-w-sm">
-        <div className="glass-card rounded-2xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
           {/* Header */}
           <div className="p-5 pb-4">
-            <h2 className="text-xl font-bold text-white mb-4">Get a ride</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Get a ride</h2>
 
             {/* Location Inputs */}
             <div className="space-y-3">
               {/* Pickup */}
               <div className="flex items-start gap-3">
                 <div className="flex flex-col items-center pt-3">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                  <div className="w-0.5 h-10 bg-slate-600 mt-1" />
+                  <div className="w-3 h-3 rounded-full bg-black" />
+                  <div className="w-0.5 h-10 bg-gray-300 mt-1" />
                 </div>
                 <div className="flex-1 relative">
                   <input
@@ -365,27 +363,27 @@ export function BookingMapPanel({
                     placeholder="Pickup location"
                     defaultValue={pickup}
                     onChange={(e) => setPickupValue(e.target.value)}
-                    className="w-full h-12 px-4 pr-20 bg-slate-800/80 border border-slate-600/50 rounded-xl text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full h-12 px-4 pr-20 bg-gray-100 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 transition-all"
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     {pickupValue && (
                       <button
                         onClick={() => clearInput("pickup")}
-                        className="p-1.5 hover:bg-slate-700 rounded-full transition-colors"
+                        className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
                       >
-                        <X className="w-4 h-4 text-slate-400" />
+                        <X className="w-4 h-4 text-gray-500" />
                       </button>
                     )}
                     <button
                       onClick={handleLocateMe}
                       disabled={isLocating}
-                      className="p-1.5 hover:bg-slate-700 rounded-full transition-colors"
+                      className="p-1.5 hover:bg-gray-200 rounded-full transition-colors"
                       title="Use my location"
                     >
                       {isLocating ? (
-                        <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
+                        <Loader2 className="w-4 h-4 text-black animate-spin" />
                       ) : (
-                        <Locate className="w-4 h-4 text-slate-400 hover:text-emerald-400" />
+                        <Locate className="w-4 h-4 text-gray-500 hover:text-black" />
                       )}
                     </button>
                   </div>
@@ -395,7 +393,7 @@ export function BookingMapPanel({
               {/* Dropoff */}
               <div className="flex items-start gap-3">
                 <div className="flex flex-col items-center pt-3">
-                  <div className="w-3 h-3 rounded-sm bg-slate-900 border-2 border-white" />
+                  <div className="w-3 h-3 rounded-sm bg-black" />
                 </div>
                 <div className="flex-1 relative">
                   <input
@@ -404,14 +402,14 @@ export function BookingMapPanel({
                     placeholder="Dropoff location"
                     defaultValue={dropoff}
                     onChange={(e) => setDropoffValue(e.target.value)}
-                    className="w-full h-12 px-4 pr-10 bg-slate-800/80 border border-slate-600/50 rounded-xl text-white placeholder:text-slate-400 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full h-12 px-4 pr-10 bg-gray-100 border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 text-sm focus:outline-none focus:border-gray-400 focus:ring-2 focus:ring-gray-200 transition-all"
                   />
                   {dropoffValue && (
                     <button
                       onClick={() => clearInput("dropoff")}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-slate-700 rounded-full transition-colors"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-200 rounded-full transition-colors"
                     >
-                      <X className="w-4 h-4 text-slate-400" />
+                      <X className="w-4 h-4 text-gray-500" />
                     </button>
                   )}
                 </div>
@@ -420,18 +418,18 @@ export function BookingMapPanel({
 
             {/* Route Info */}
             {routeInfo && (
-              <div className="mt-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700/50">
+              <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
                 <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Route className="w-4 h-4 text-blue-400" />
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Route className="w-4 h-4 text-blue-500" />
                     <span>{routeInfo.distanceMi.toFixed(1)} mi</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Clock className="w-4 h-4 text-purple-400" />
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="w-4 h-4 text-purple-500" />
                     <span>{routeInfo.durationMin} min</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Car className="w-4 h-4 text-emerald-400" />
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Car className="w-4 h-4 text-green-500" />
                     <span>~{routeInfo.durationMin + 3} min</span>
                   </div>
                 </div>
@@ -444,8 +442,8 @@ export function BookingMapPanel({
               disabled={!canSearch}
               className={`w-full h-12 mt-4 text-base font-semibold rounded-xl transition-all ${
                 canSearch
-                  ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30"
-                  : "bg-slate-700 text-slate-400 cursor-not-allowed"
+                  ? "bg-black hover:bg-gray-800 text-white"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
             >
               <span className="flex items-center gap-2">
@@ -457,26 +455,26 @@ export function BookingMapPanel({
 
           {/* Quick Suggestions */}
           {!pickupValue && (
-            <div className="border-t border-slate-700/50">
+            <div className="border-t border-gray-100">
               <button
                 onClick={handleLocateMe}
-                className="w-full flex items-center gap-3 p-4 hover:bg-slate-800/50 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left"
               >
-                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                  <Locate className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Locate className="w-5 h-5 text-gray-700" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Allow location access</p>
-                  <p className="text-xs text-slate-400">It provides your pickup address</p>
+                  <p className="text-sm font-medium text-gray-900">Allow location access</p>
+                  <p className="text-xs text-gray-500">It provides your pickup address</p>
                 </div>
               </button>
-              <button className="w-full flex items-center gap-3 p-4 hover:bg-slate-800/50 transition-colors text-left border-t border-slate-700/50">
-                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-white" />
+              <button className="w-full flex items-center gap-3 p-4 hover:bg-gray-50 transition-colors text-left border-t border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-gray-700" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">Set location on map</p>
-                  <p className="text-xs text-slate-400">Tap anywhere on the map</p>
+                  <p className="text-sm font-medium text-gray-900">Set location on map</p>
+                  <p className="text-xs text-gray-500">Tap anywhere on the map</p>
                 </div>
               </button>
             </div>
@@ -486,15 +484,15 @@ export function BookingMapPanel({
 
       {/* Map Legend */}
       {(pickupCoordsRef.current || dropoffCoordsRef.current) && !isLoading && !mapsError && (
-        <div className="absolute bottom-4 left-4 z-20 glass-card rounded-xl px-4 py-2">
+        <div className="absolute bottom-4 left-4 z-20 bg-white rounded-xl px-4 py-2 shadow-lg border border-gray-200">
           <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span className="text-slate-300">Pickup</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-black border-2 border-white shadow" />
+              <span className="text-gray-600">Pickup</span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2.5 h-2.5 rounded-sm bg-black border border-white" />
-              <span className="text-slate-300">Dropoff</span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-sm bg-black border-2 border-white shadow" />
+              <span className="text-gray-600">Dropoff</span>
             </div>
           </div>
         </div>
@@ -502,5 +500,3 @@ export function BookingMapPanel({
     </div>
   )
 }
-
-export default BookingMapPanel

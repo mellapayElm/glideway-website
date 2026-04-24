@@ -211,18 +211,18 @@ export default function DriverApp() {
     }, 3000)
   }
 
-  // Menu items
+  // Menu items with links
   const menuItems = [
-    { icon: <Home className="w-5 h-5" />, label: "Home", action: () => setShowMenu(false) },
-    { icon: <TrendingUp className="w-5 h-5" />, label: "Earnings", action: () => { setShowEarnings(true); setShowMenu(false) } },
-    { icon: <History className="w-5 h-5" />, label: "Trip History", action: () => {} },
-    { icon: <CreditCard className="w-5 h-5" />, label: "Payouts", action: () => {} },
-    { icon: <FileText className="w-5 h-5" />, label: "Documents", action: () => {} },
-    { icon: <Star className="w-5 h-5" />, label: "Ratings", action: () => {} },
-    { icon: <Gift className="w-5 h-5" />, label: "Bonuses", action: () => {} },
-    { icon: <Award className="w-5 h-5" />, label: "Achievements", action: () => {} },
-    { icon: <HelpCircle className="w-5 h-5" />, label: "Support", action: () => {} },
-    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: () => {} },
+    { icon: <Home className="w-5 h-5" />, label: "Home", action: () => setShowMenu(false), href: null },
+    { icon: <TrendingUp className="w-5 h-5" />, label: "Earnings", action: null, href: "/driver/earnings" },
+    { icon: <History className="w-5 h-5" />, label: "Trip History", action: null, href: "/driver/history" },
+    { icon: <CreditCard className="w-5 h-5" />, label: "Payouts", action: null, href: "/driver/payouts" },
+    { icon: <FileText className="w-5 h-5" />, label: "Documents", action: null, href: "/driver/documents" },
+    { icon: <Star className="w-5 h-5" />, label: "Ratings", action: null, href: "/driver/ratings" },
+    { icon: <Shield className="w-5 h-5" />, label: "Safety", action: null, href: "/driver/safety" },
+    { icon: <Gift className="w-5 h-5" />, label: "Bonuses", action: null, href: "/driver/earnings" },
+    { icon: <HelpCircle className="w-5 h-5" />, label: "Support", action: null, href: "/driver/support" },
+    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: null, href: "/driver/settings" },
   ]
 
   // Status indicator color
@@ -687,14 +687,25 @@ export default function DriverApp() {
               {/* Menu Items */}
               <div className="py-4">
                 {menuItems.map((item, index) => (
-                  <button
-                    key={index}
-                    onClick={item.action}
-                    className="w-full flex items-center gap-4 px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors"
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </button>
+                  item.href ? (
+                    <Link
+                      key={index}
+                      href={item.href}
+                      className="w-full flex items-center gap-4 px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </Link>
+                  ) : (
+                    <button
+                      key={index}
+                      onClick={item.action || undefined}
+                      className="w-full flex items-center gap-4 px-6 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+                    >
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </button>
+                  )
                 ))}
               </div>
 

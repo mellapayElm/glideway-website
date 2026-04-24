@@ -36,7 +36,11 @@ const TRUSTED_CONTACTS: TrustedContact[] = [
 
 const LANGUAGES = ["English", "Spanish", "French", "German", "Chinese", "Arabic"]
 
-export function AccountScreen() {
+interface AccountScreenProps {
+  onLogout?: () => void
+}
+
+export function AccountScreen({ onLogout }: AccountScreenProps) {
   const [showEditProfile, setShowEditProfile] = useState(false)
   const [showSavedPlaces, setShowSavedPlaces] = useState(false)
   const [showSafety, setShowSafety] = useState(false)
@@ -190,7 +194,10 @@ export function AccountScreen() {
             </div>
 
             {/* Sign Out */}
-            <button className="w-full py-4 text-red-600 font-medium">
+            <button 
+              onClick={onLogout}
+              className="w-full py-4 text-red-600 font-medium hover:bg-red-50 rounded-lg transition-colors"
+            >
               Sign Out
             </button>
 

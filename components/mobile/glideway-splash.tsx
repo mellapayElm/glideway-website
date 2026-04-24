@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowRight, MapPin, Shield, Zap } from "lucide-react"
 
 interface GlideWaySplashProps {
@@ -10,6 +10,14 @@ interface GlideWaySplashProps {
 
 export function GlideWaySplash({ onGetStarted, onLogin }: GlideWaySplashProps) {
   const [showContent, setShowContent] = useState(false)
+
+  // Trigger animation on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowContent(true)
+    }, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col items-center justify-center overflow-hidden relative">
@@ -133,21 +141,6 @@ export function GlideWaySplash({ onGetStarted, onLogin }: GlideWaySplashProps) {
 
         <div className="h-8" />
       </div>
-
-      {/* Trigger animation on mount */}
-      <button 
-        data-splash 
-        onClick={() => setShowContent(true)} 
-        className="hidden"
-      />
-      
-      <script suppressHydrationWarning>{`
-        if (typeof window !== 'undefined') {
-          setTimeout(() => {
-            document.querySelector('[data-splash]')?.click();
-          }, 100);
-        }
-      `}</script>
     </div>
   )
 }

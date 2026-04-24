@@ -79,10 +79,6 @@ export function GlideWayBooking() {
   const mapInstance = useRef<google.maps.Map | null>(null)
   const directionsService = useRef<google.maps.DirectionsService | null>(null)
   const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null)
-  const pickupAutocomplete = useRef<google.maps.places.Autocomplete | null>(null)
-  const dropoffAutocomplete = useRef<google.maps.places.Autocomplete | null>(null)
-  const pickupInputRef = useRef<HTMLInputElement>(null)
-  const dropoffInputRef = useRef<HTMLInputElement>(null)
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
@@ -139,30 +135,8 @@ export function GlideWayBooking() {
           }
         })
 
-        // Setup autocomplete
-        if (pickupInputRef.current) {
-          pickupAutocomplete.current = new google.maps.places.Autocomplete(pickupInputRef.current, {
-            types: ["address"]
-          })
-          pickupAutocomplete.current.addListener("place_changed", () => {
-            const place = pickupAutocomplete.current?.getPlace()
-            if (place?.formatted_address) {
-              setPickup(place.formatted_address)
-            }
-          })
-        }
-
-        if (dropoffInputRef.current) {
-          dropoffAutocomplete.current = new google.maps.places.Autocomplete(dropoffInputRef.current, {
-            types: ["address"]
-          })
-          dropoffAutocomplete.current.addListener("place_changed", () => {
-            const place = dropoffAutocomplete.current?.getPlace()
-            if (place?.formatted_address) {
-              setDropoff(place.formatted_address)
-            }
-          })
-        }
+        // Autocomplete removed - using standard text inputs
+        // The Places Autocomplete API is deprecated as of March 2025
 
         // Map click for pickup selection
         map.addListener("click", (event: google.maps.MapMouseEvent) => {
@@ -316,7 +290,6 @@ export function GlideWayBooking() {
         <div className="mb-6 pb-6 border-b border-gray-200">
           <label className="block font-bold text-gray-900 mb-2">Pickup Location</label>
           <input
-            ref={pickupInputRef}
             type="text"
             value={pickup}
             onChange={(e) => setPickup(e.target.value)}
@@ -344,7 +317,6 @@ export function GlideWayBooking() {
 
           <label className="block font-bold text-gray-900 mb-2">Dropoff Location</label>
           <input
-            ref={dropoffInputRef}
             type="text"
             value={dropoff}
             onChange={(e) => setDropoff(e.target.value)}

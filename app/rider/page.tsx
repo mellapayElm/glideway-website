@@ -401,7 +401,7 @@ export default function RiderApp() {
     </div>
   )
 
-  // Smart Map Visualization
+  // Smart Map Visualization - Full Uber-style map with floating card
   const SmartMapView = () => (
     <BookingMapPanel
       pickup={pickup}
@@ -417,6 +417,8 @@ export default function RiderApp() {
         setTripDuration(durationMin)
         setEta(durationMin + 3)
       }}
+      onSearch={() => setCurrentView("booking")}
+      height={450}
     />
   )
 

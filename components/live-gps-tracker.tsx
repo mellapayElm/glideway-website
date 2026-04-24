@@ -39,20 +39,18 @@ export function LiveGPSTracker({
   const userMarker = useRef<any>(null);
   const driverMarker = useRef<any>(null);
   const directionsRenderer = useRef<any>(null);
-  
-  const [userLocation, setUserLocation] = useState<Location | null>(null);
-  const [driverLocation, setDriverLocation] = useState<Location>({ lat: 34.0522, lng: -118.2437 });
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [gpsStatus, setGpsStatus] = useState<'acquiring' | 'locked' | 'error'>('acquiring');
-  const [eta, setEta] = useState(estimatedArrival);
-  const [distance, setDistance] = useState('5.2 mi');
-  const [watchId, setWatchId] = useState<number | null>(null);
+  const locationWatchId = useRef<number | null>(null);
+  const [isClient, setIsClient] = useState(false);
+  const [mapsReady, setMapsReady] = useState(false);
 
-  // Load Google Maps script
   useEffect(() => {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-    
-    if (window.google?.maps) {
+    setIsClient(true);
+    if (typeof window !== 'undefined' && window.google?.maps) {
+      setMapsReady(true);
+    }
+  }, []);
+
+  if (typeof window === 'undefined' || !window.google?.maps) {
       setMapLoaded(true);
       return;
     }
@@ -284,7 +282,7 @@ export function LiveGPSTracker({
 
       {/* Map Container */}
       <div className="relative h-[50vh]">
-        {!process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || !window.google?.maps ? (
+        {!isClient || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || !mapsReady ? (
           // Fallback map using iframe
           <iframe
             src={`https://www.openstreetmap.org/export/embed.html?bbox=${(userLocation?.lng || -118.2437) - 0.05}%2C${(userLocation?.lat || 34.0522) - 0.03}%2C${(userLocation?.lng || -118.2437) + 0.05}%2C${(userLocation?.lat || 34.0522) + 0.03}&layer=mapnik&marker=${userLocation?.lat || 34.0522}%2C${userLocation?.lng || -118.2437}`}

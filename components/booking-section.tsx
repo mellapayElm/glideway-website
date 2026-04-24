@@ -2,10 +2,11 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { MapPin, Calendar, Clock, Car, CreditCard, ChevronRight, Navigation, Locate } from "lucide-react"
+import { Calendar, Clock, Car, CreditCard, ChevronRight, Navigation } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BookingMapPanel } from "@/components/booking-map-panel"
 
 const rideOptions = [
   { id: "economy", name: "Economy", price: "$12-15", time: "5 min", icon: Car, description: "Affordable everyday rides" },
@@ -63,38 +64,6 @@ export function BookingSection() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Location Inputs */}
-                <div className="space-y-4">
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-primary" />
-                      <div className="w-0.5 h-8 bg-border my-1" />
-                      <div className="w-3 h-3 rounded-full bg-destructive" />
-                    </div>
-                    <div className="space-y-3 pl-10">
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter pickup location"
-                          value={pickup}
-                          onChange={(e) => setPickup(e.target.value)}
-                          className="h-12 bg-secondary border-border text-foreground pr-10"
-                        />
-                        <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                          <Locate className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter drop-off location"
-                          value={dropoff}
-                          onChange={(e) => setDropoff(e.target.value)}
-                          className="h-12 bg-secondary border-border text-foreground"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Date & Time */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="relative">
@@ -178,95 +147,19 @@ export function BookingSection() {
             </Card>
           </motion.div>
 
-          {/* Map Preview */}
+          {/* Real Google Map with Address Entry */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative"
           >
-            <Card className="bg-card border-border overflow-hidden">
-              <div className="aspect-square lg:aspect-[4/3] bg-secondary relative">
-                {/* Simulated Map */}
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted">
-                  {/* Grid lines for map effect */}
-                  <div 
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                       linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                      backgroundSize: '40px 40px'
-                    }}
-                  />
-                  
-                  {/* Pickup marker */}
-                  <div className="absolute top-1/3 left-1/4 flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                      <MapPin className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <div className="mt-2 px-3 py-1 rounded-full bg-card text-xs font-medium text-foreground shadow">
-                      Pickup
-                    </div>
-                  </div>
-                  
-                  {/* Route line */}
-                  <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-                    <path
-                      d="M 25% 33% Q 50% 20%, 70% 60%"
-                      fill="none"
-                      stroke="var(--primary)"
-                      strokeWidth="3"
-                      strokeDasharray="8 4"
-                      className="opacity-60"
-                    />
-                  </svg>
-                  
-                  {/* Dropoff marker */}
-                  <div className="absolute bottom-1/3 right-1/4 flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                      <MapPin className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="mt-2 px-3 py-1 rounded-full bg-card text-xs font-medium text-foreground shadow">
-                      Drop-off
-                    </div>
-                  </div>
-                  
-                  {/* Car icon moving */}
-                  <motion.div
-                    className="absolute"
-                    style={{ top: '40%', left: '40%' }}
-                    animate={{
-                      x: [0, 20, 40, 60],
-                      y: [0, -10, 5, 15],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-card border-2 border-primary flex items-center justify-center shadow-lg">
-                      <Car className="w-5 h-5 text-primary" />
-                    </div>
-                  </motion.div>
-                </div>
-                
-                {/* Map overlay info */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-card/95 backdrop-blur rounded-xl p-4 border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Estimated Time</span>
-                      <span className="font-semibold text-foreground">12 min</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Distance</span>
-                      <span className="font-semibold text-foreground">4.2 miles</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </Card>
+            <BookingMapPanel
+              pickup={pickup}
+              dropoff={dropoff}
+              onPickupChange={(addr) => setPickup(addr)}
+              onDropoffChange={(addr) => setDropoff(addr)}
+            />
           </motion.div>
         </div>
       </div>

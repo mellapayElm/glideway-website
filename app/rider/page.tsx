@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GlidewayLogo } from "@/components/glideway-logo"
 import Link from "next/link"
+import { BookingMapPanel } from "@/components/booking-map-panel"
 
 type AppView = "home" | "booking" | "tracking" | "history" | "profile" | "support" | "map-details"
 type RideType = "economy" | "comfort" | "premium" | "xl"
@@ -402,111 +403,26 @@ export default function RiderApp() {
 
   // Smart Map Visualization
   const SmartMapView = () => (
-    <div className="relative bg-slate-900 rounded-2xl overflow-hidden border border-slate-700/50">
-      {/* Map Background */}
-      <div className="h-64 bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 relative">
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: "linear-gradient(to right, #374151 1px, transparent 1px), linear-gradient(to bottom, #374151 1px, transparent 1px)",
-          backgroundSize: "40px 40px"
-        }} />
-        
-        {/* Demand Heatmap Overlay */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/3 w-20 h-20 bg-green-500/20 rounded-full blur-2xl" />
-          <div className="absolute top-1/2 right-1/4 w-24 h-24 bg-yellow-500/30 rounded-full blur-2xl" />
-          <div className="absolute bottom-1/4 left-1/2 w-16 h-16 bg-red-500/20 rounded-full blur-xl" />
-        </div>
+    <BookingMapPanel
+      pickup={pickup}
+      dropoff={dropoff}
+      onPickupChange={(addr, coords) => {
+        setPickup(addr)
+      }}
+      onDropoffChange={(addr, coords) => {
+        setDropoff(addr)
+      }}
+      onRouteInfo={({ distanceMi, durationMin }) => {
+        setTripDistance(parseFloat(distanceMi.toFixed(1)))
+        setTripDuration(durationMin)
+        setEta(durationMin + 3)
+      }}
+    />
+  )
 
-        {/* Route Line */}
-        <svg className="absolute inset-0 w-full h-full">
-          <path
-            d="M 80 180 Q 120 120 160 140 T 240 100 T 320 120"
-            stroke="url(#routeGradient)"
-            strokeWidth="4"
-            fill="none"
-            strokeDasharray="8 4"
-            className="animate-pulse"
-          />
-          <defs>
-            <linearGradient id="routeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#10b981" />
-              <stop offset="100%" stopColor="#3b82f6" />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        {/* Pickup Marker */}
-        <div className="absolute top-[70%] left-[20%] transform -translate-x-1/2 -translate-y-1/2">
-          <div className="relative">
-            <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/50 animate-pulse">
-              <MapPin className="w-5 h-5 text-white" />
-            </div>
-            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-emerald-500 rotate-45" />
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-slate-800 px-2 py-1 rounded text-[10px] font-medium text-white">
-              Pickup
-            </div>
-          </div>
-        </div>
-
-        {/* Driver Marker */}
-        <div className="absolute top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2">
-          <div className="relative">
-            <motion.div
-              animate={{ rotate: driverLocation.heading }}
-              className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-emerald-500/50"
-            >
-              <Car className="w-6 h-6 text-white" />
-            </motion.div>
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-emerald-600 px-2 py-1 rounded text-[10px] font-bold text-white">
-              {Math.round(driverLocation.speed)} mph
-            </div>
-          </div>
-        </div>
-
-        {/* Dropoff Marker */}
-        <div className="absolute top-[30%] right-[15%] transform -translate-x-1/2 -translate-y-1/2">
-          <div className="relative">
-            <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center shadow-lg shadow-red-500/50">
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-red-500 rotate-45" />
-            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-slate-800 px-2 py-1 rounded text-[10px] font-medium text-white">
-              Drop-off
-            </div>
-          </div>
-        </div>
-
-        {/* Traffic Indicator */}
-        <div className="absolute top-3 right-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${trafficCondition === "light" ? "bg-green-500" : trafficCondition === "moderate" ? "bg-yellow-500" : "bg-red-500"}`} />
-            <span className="text-xs font-medium text-white capitalize">{trafficCondition} Traffic</span>
-          </div>
-        </div>
-
-        {/* Weather Widget */}
-        <div className="absolute top-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700">
-          <div className="flex items-center gap-2">
-            {weather.icon}
-            <span className="text-xs font-medium text-white">{weather.temp}°F</span>
-          </div>
-        </div>
-
-        {/* Zone Demand Indicator */}
-        <div className="absolute bottom-3 left-3 bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-2 border border-slate-700">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${currentZone.level === "low" ? "bg-blue-500" : currentZone.level === "normal" ? "bg-green-500" : currentZone.level === "high" ? "bg-yellow-500" : "bg-red-500 animate-pulse"}`} />
-            <span className="text-xs font-medium text-white">{currentZone.zone}</span>
-            {currentZone.multiplier > 1 && (
-              <span className="text-[10px] font-bold text-red-400">{currentZone.multiplier}x</span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Map Stats Bar */}
-      <div className="grid grid-cols-4 gap-px bg-slate-700">
+  // Keep legacy stats bar below booking panel — rendered separately in BookingView
+  const MapStatsBar = () => (
+    <div className="grid grid-cols-4 gap-px bg-slate-700 rounded-xl overflow-hidden mt-0">
         <div className="bg-slate-800 p-3 text-center">
           <Route className="w-4 h-4 mx-auto mb-1 text-blue-400" />
           <div className="text-xs text-slate-400">Distance</div>
@@ -528,7 +444,6 @@ export default function RiderApp() {
           <div className="text-sm font-bold text-white">${pricingBreakdown.distanceFare.toFixed(2)}</div>
         </div>
       </div>
-    </div>
   )
 
   // Pricing Breakdown Modal

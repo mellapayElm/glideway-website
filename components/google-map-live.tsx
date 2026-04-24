@@ -27,6 +27,22 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
   }
 
   googleMapsPromise = new Promise((resolve, reject) => {
+    // Check if script already exists to prevent duplicates
+    const existingScript = document.querySelector(
+      `script[src*="maps.googleapis.com/maps/api/js"][src*="key=${apiKey}"]`
+    );
+    
+    if (existingScript) {
+      // Wait for existing script to load
+      const checkGoogle = setInterval(() => {
+        if (window.google?.maps) {
+          clearInterval(checkGoogle);
+          resolve();
+        }
+      }, 100);
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&v=weekly`;
     script.async = true;

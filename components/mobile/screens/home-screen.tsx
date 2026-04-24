@@ -454,6 +454,51 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
       
       {/* Google Maps container (will show if API works) */}
       <div ref={mapRef} className="absolute inset-0 z-[1]" />
+      
+      {/* Hide Google Maps error overlay */}
+      <style jsx global>{`
+        .gm-err-container, .gm-err-content, .dismissButton, div[style*="background-color: rgb(229, 227, 223)"] {
+          display: none !important;
+        }
+      `}</style>
+      
+      {/* Location Button */}
+      <button
+        onClick={() => {
+          if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                const newLocation = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                }
+                setUserLocation(newLocation)
+                if (mapInstanceRef.current) {
+                  mapInstanceRef.current.panTo(newLocation)
+                  if (pickupMarkerRef.current) {
+                    pickupMarkerRef.current.setPosition(newLocation)
+                  }
+                }
+                // Reverse geocode
+                if (geocoderRef.current) {
+                  geocoderRef.current.geocode({ location: newLocation }, (results, status) => {
+                    if (status === "OK" && results?.[0]) {
+                      setPickup(results[0].formatted_address)
+                    }
+                  })
+                }
+              },
+              (error) => {
+                alert("Unable to get your location. Please enable GPS in your device settings.")
+              },
+              { enableHighAccuracy: true }
+            )
+          }
+        }}
+        className="absolute top-40 right-4 z-10 w-12 h-12 bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-full flex items-center justify-center hover:bg-gray-800 transition-colors shadow-lg"
+      >
+        <Navigation className="w-5 h-5 text-lime-400" />
+      </button>
 
       {/* Content Overlay */}
       <div className="relative z-[5] flex flex-col h-full">

@@ -154,8 +154,9 @@ export function BookingMapPanel({
 
     async function init() {
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+      
       if (!apiKey) {
-        setMapsError("Google Maps API key required")
+        setMapsError("Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables")
         setIsLoading(false)
         return
       }

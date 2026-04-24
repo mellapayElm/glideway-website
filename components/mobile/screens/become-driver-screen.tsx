@@ -198,25 +198,68 @@ export function BecomeDriverScreen({ onBack, onComplete }: BecomeDriverScreenPro
     )
   }
 
-  // Step 3: Verify Phone & Email
+  // Step 3: Verify Phone & Email (Demo Mode - any 6-digit code works)
   if (currentStep === 2) {
     return (
       <div className="w-full min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col">
-        <StepHeader step={3} title="Verify Phone & Email" onBack={() => setCurrentStep(1)} />
+        <StepHeader step={3} title="Verify Phone" onBack={() => setCurrentStep(1)} />
         <div className="flex-1 overflow-y-auto p-4">
-          <p className="text-gray-400 text-sm mb-6">We sent a 6-digit code to your phone and email. Enter it below to verify.</p>
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-300 mb-2">Verification Code</label>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              placeholder="000000"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-4 text-white text-center text-2xl tracking-widest placeholder-gray-500 focus:outline-none focus:border-lime-400"
-              maxLength={6}
-            />
+          {/* Demo mode notice */}
+          <div className="bg-lime-400/10 border border-lime-400/30 rounded-xl p-3 mb-6">
+            <p className="text-lime-400 text-sm font-medium">Demo Mode</p>
+            <p className="text-lime-400/70 text-xs">Enter any 6-digit code (e.g., 123456) to continue</p>
           </div>
-          <button className="text-lime-400 text-sm font-medium">Resend Code</button>
+          
+          <div className="flex flex-col items-center text-center mb-6">
+            <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Verify Your Phone</h3>
+            <p className="text-gray-400 text-sm">Enter the 6-digit code sent to {formData.phone || "(555) 123-4567"}</p>
+          </div>
+          
+          <div className="mb-6">
+            <div className="flex justify-center gap-2">
+              {[0, 1, 2, 3, 4, 5].map((index) => (
+                <input
+                  key={index}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={otp[index] || ""}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "")
+                    if (val) {
+                      const newOtp = otp.split("")
+                      newOtp[index] = val
+                      setOtp(newOtp.join("").slice(0, 6))
+                      // Auto-focus next input
+                      const next = e.target.nextElementSibling as HTMLInputElement
+                      if (next && val) next.focus()
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !otp[index]) {
+                      const prev = (e.target as HTMLElement).previousElementSibling as HTMLInputElement
+                      if (prev) prev.focus()
+                    }
+                  }}
+                  className="w-12 h-14 bg-gray-800 border border-gray-600 rounded-lg text-white text-center text-xl font-bold focus:outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-400"
+                />
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-center gap-2 text-gray-400 text-sm mb-6">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Code expires in 9:59
+          </div>
+          
+          <button className="text-lime-400 text-sm font-medium w-full text-center">Resend Code</button>
         </div>
         <StepFooter onNext={handleNext} disabled={otp.length !== 6} />
       </div>

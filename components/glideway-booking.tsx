@@ -77,8 +77,6 @@ function loadGoogleMaps(apiKey: string): Promise<void> {
 export function GlideWayBooking() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<google.maps.Map | null>(null)
-  const directionsService = useRef<google.maps.DirectionsService | null>(null)
-  const directionsRenderer = useRef<google.maps.DirectionsRenderer | null>(null)
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapError, setMapError] = useState<string | null>(null)
@@ -125,34 +123,8 @@ export function GlideWayBooking() {
         })
 
         mapInstance.current = map
-        directionsService.current = new google.maps.DirectionsService()
-        directionsRenderer.current = new google.maps.DirectionsRenderer({ 
-          map,
-          suppressMarkers: false,
-          polylineOptions: {
-            strokeColor: "#22c55e",
-            strokeWeight: 5
-          }
-        })
 
-        // Autocomplete removed - using standard text inputs
-        // The Places Autocomplete API is deprecated as of March 2025
-
-        // Map click for pickup selection
-        map.addListener("click", (event: google.maps.MapMouseEvent) => {
-          if (mapPickupMode && event.latLng) {
-            const geocoder = new google.maps.Geocoder()
-            geocoder.geocode({ location: event.latLng }, (results, status) => {
-              if (status === "OK" && results?.[0]) {
-                setPickup(results[0].formatted_address)
-                setMapPickupMode(false)
-              }
-            })
-          }
-        })
-
-        // Show nearby drivers
-        showNearbyDrivers(map, DEFAULT_CENTER)
+        // Map click for pickup selection removed - use GlideWayMap component instead
 
         setMapLoaded(true)
       } catch (err) {
@@ -163,33 +135,6 @@ export function GlideWayBooking() {
     initMap()
   }, [mapPickupMode])
 
-  // Show fake nearby drivers
-  function showNearbyDrivers(map: google.maps.Map, center: { lat: number; lng: number }) {
-    const drivers = [
-      { lat: center.lat + 0.008, lng: center.lng + 0.012 },
-      { lat: center.lat - 0.010, lng: center.lng + 0.006 },
-      { lat: center.lat + 0.005, lng: center.lng - 0.015 },
-      { lat: center.lat - 0.007, lng: center.lng - 0.009 },
-    ]
-
-    drivers.forEach((pos, i) => {
-      new google.maps.Marker({
-        position: pos,
-        map,
-        title: `GlideWay Driver ${i + 1}`,
-        icon: {
-          url: "data:image/svg+xml," + encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="#22c55e">
-              <circle cx="12" cy="12" r="10" fill="#22c55e"/>
-              <text x="12" y="16" text-anchor="middle" fill="white" font-size="12">🚗</text>
-            </svg>
-          `),
-          scaledSize: new google.maps.Size(40, 40)
-        }
-      })
-    })
-  }
-
   // Use current location
   function useCurrentLocation() {
     if (!navigator.geolocation) {
@@ -199,19 +144,14 @@ export function GlideWayBooking() {
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const loc = { lat: position.coords.latitude, lng: position.coords.longitude }
+        const lat = position.coords.latitude
+        const lng = position.coords.longitude
+        setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
         
         if (mapInstance.current) {
-          mapInstance.current.setCenter(loc)
+          mapInstance.current.setCenter({ lat, lng })
           mapInstance.current.setZoom(15)
         }
-
-        const geocoder = new google.maps.Geocoder()
-        geocoder.geocode({ location: loc }, (results, status) => {
-          if (status === "OK" && results?.[0]) {
-            setPickup(results[0].formatted_address)
-          }
-        })
       },
       () => alert("Please allow location access")
     )

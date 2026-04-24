@@ -32,6 +32,15 @@ export function GlideWaySplash({ onGetStarted, onLogin }: GlideWaySplashProps) {
         {/* Top spacing */}
         <div className="h-8" />
 
+        {/* Logo Animation */}
+        <div className={`mb-12 transition-all duration-1000 ${showContent ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}>
+          <img 
+            src="/glideway-logo.png" 
+            alt="GlideWay Logo" 
+            className="w-64 h-auto"
+          />
+        </div>
+
         {/* Main Heading */}
         <div className={`transition-all duration-1000 delay-200 ${showContent ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
           <h1 className="text-4xl font-bold text-white mb-2 leading-tight">

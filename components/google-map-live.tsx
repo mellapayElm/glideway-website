@@ -81,20 +81,27 @@ export default function GoogleMapLive({
       if (!mapRef.current) return;
 
       const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      
       if (!apiKey) {
+        console.warn("[GoogleMapLive] API key not found in environment. Attempting to load from window object.");
         setError("Google Maps API key is required. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.");
         setIsLoading(false);
         return;
       }
 
+      console.log("[GoogleMapLive] Using API key:", apiKey ? "Present" : "Missing");
+
       try {
         const loader = new Loader({
           apiKey,
           version: "weekly",
-          libraries: ["places", "geometry"],
+          libraries: ["places", "geometry", "directions"],
         });
 
+        console.log("[GoogleMapLive] Loader initialized");
         await loader.load();
+        console.log("[GoogleMapLive] Google Maps loaded successfully");
+        
         if (!isMounted || !mapRef.current) return;
 
         const center = driver || pickup || DEFAULT_CENTER;
@@ -138,8 +145,10 @@ export default function GoogleMapLive({
         onMapReady?.(map);
 
       } catch (err) {
+        console.error("[GoogleMapLive] Error:", err);
         if (isMounted) {
-          setError("Failed to load Google Maps. Please check your API key.");
+          const errorMessage = err instanceof Error ? err.message : "Unknown error";
+          setError(`Failed to load Google Maps: ${errorMessage}`);
           setIsLoading(false);
         }
       }

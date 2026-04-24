@@ -2,273 +2,173 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { MapPin, Calendar, Clock, Car, CreditCard, ChevronRight, Navigation, Locate } from "lucide-react"
+import { Calendar, Clock, Car, CreditCard, ChevronRight, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BookingMapPanel } from "@/components/booking-map-panel"
 
 const rideOptions = [
-  { id: "economy", name: "Economy", price: "$12-15", time: "5 min", icon: Car, description: "Affordable everyday rides" },
-  { id: "comfort", name: "Comfort", price: "$18-22", time: "3 min", icon: Car, description: "Extra legroom & amenities" },
-  { id: "premium", name: "Premium", price: "$35-45", time: "7 min", icon: Car, description: "Luxury vehicles" },
-  { id: "xl", name: "XL", price: "$25-30", time: "8 min", icon: Car, description: "For groups up to 6" },
+  { id: "economy", name: "Economy", price: "$12-15", time: "5 min", icon: Car },
+  { id: "comfort", name: "Comfort", price: "$18-22", time: "3 min", icon: Car },
+  { id: "premium", name: "Premium", price: "$35-45", time: "7 min", icon: Car },
+  { id: "xl", name: "XL", price: "$25-30", time: "8 min", icon: Users },
 ]
 
 export function BookingSection() {
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
   const [selectedRide, setSelectedRide] = useState("comfort")
+  const [showRideOptions, setShowRideOptions] = useState(false)
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingStep, setBookingStep] = useState<"location" | "ride" | "payment" | "confirmed">("location")
+  const [routeInfo, setRouteInfo] = useState<{ distanceMi: number; durationMin: number } | null>(null)
+
+  const handleSearch = () => {
+    if (pickup && dropoff) {
+      setShowRideOptions(true)
+    }
+  }
 
   const handleBookRide = async () => {
     setIsBooking(true)
     await new Promise(resolve => setTimeout(resolve, 2000))
-    setBookingStep("confirmed")
     setIsBooking(false)
+    // Show confirmation or redirect
   }
 
+  const selectedRideOption = rideOptions.find(r => r.id === selectedRide)
+
   return (
-    <section id="booking" className="py-24 bg-gradient-to-b from-background to-secondary/20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Book Your Ride
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Enter your pickup and drop-off locations to get started with your journey
-          </p>
-        </motion.div>
+    <section id="booking" className="relative min-h-[700px] bg-background">
+      {/* Section Header - Overlaid on map */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        className="absolute top-0 left-0 right-0 z-10 text-center pt-8 pb-4 bg-gradient-to-b from-background via-background/80 to-transparent"
+      >
+        <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
+          Book Your Ride
+        </h2>
+        <p className="text-muted-foreground max-w-2xl mx-auto px-4">
+          Enter your pickup and drop-off locations to get started
+        </p>
+      </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-8 items-start">
-          {/* Booking Form */}
+      {/* Full-width Map with Floating Card */}
+      <div className="relative w-full h-[700px]">
+        <BookingMapPanel
+          pickup={pickup}
+          dropoff={dropoff}
+          onPickupChange={(addr, coords) => setPickup(addr)}
+          onDropoffChange={(addr, coords) => setDropoff(addr)}
+          onRouteInfo={setRouteInfo}
+          onSearch={handleSearch}
+          height="100%"
+          className="pt-24"
+        />
+
+        {/* Ride Selection Panel - Appears after search */}
+        {showRideOptions && (
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute bottom-4 left-4 right-4 z-20 max-w-lg mx-auto"
           >
-            <Card className="bg-card border-border">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-foreground">
-                  <Navigation className="w-5 h-5 text-primary" />
-                  Where are you going?
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Location Inputs */}
-                <div className="space-y-4">
-                  <div className="relative">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex flex-col items-center">
-                      <div className="w-3 h-3 rounded-full bg-primary" />
-                      <div className="w-0.5 h-8 bg-border my-1" />
-                      <div className="w-3 h-3 rounded-full bg-destructive" />
-                    </div>
-                    <div className="space-y-3 pl-10">
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter pickup location"
-                          value={pickup}
-                          onChange={(e) => setPickup(e.target.value)}
-                          className="h-12 bg-secondary border-border text-foreground pr-10"
-                        />
-                        <button className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors">
-                          <Locate className="w-5 h-5" />
-                        </button>
-                      </div>
-                      <div className="relative">
-                        <Input
-                          placeholder="Enter drop-off location"
-                          value={dropoff}
-                          onChange={(e) => setDropoff(e.target.value)}
-                          className="h-12 bg-secondary border-border text-foreground"
-                        />
-                      </div>
-                    </div>
+            <div className="glass-card rounded-2xl p-5 shadow-2xl">
+              {/* Route Summary */}
+              {routeInfo && (
+                <div className="flex items-center justify-between text-sm mb-4 pb-4 border-b border-slate-700/50">
+                  <div className="text-slate-400">
+                    <span className="text-white font-medium">{routeInfo.distanceMi.toFixed(1)} mi</span> • {routeInfo.durationMin} min
                   </div>
-                </div>
-
-                {/* Date & Time */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="date"
-                      className="h-12 bg-secondary border-border text-foreground pl-10"
-                    />
-                  </div>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <Input
-                      type="time"
-                      className="h-12 bg-secondary border-border text-foreground pl-10"
-                    />
-                  </div>
-                </div>
-
-                {/* Ride Options */}
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-foreground">Select Ride Type</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {rideOptions.map((ride) => (
-                      <button
-                        key={ride.id}
-                        onClick={() => setSelectedRide(ride.id)}
-                        className={`p-4 rounded-xl border text-left transition-all ${
-                          selectedRide === ride.id
-                            ? "border-primary bg-primary/10"
-                            : "border-border bg-secondary/50 hover:border-primary/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 mb-2">
-                          <ride.icon className={`w-5 h-5 ${selectedRide === ride.id ? "text-primary" : "text-muted-foreground"}`} />
-                          <span className={`font-medium ${selectedRide === ride.id ? "text-primary" : "text-foreground"}`}>
-                            {ride.name}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">{ride.time} away</span>
-                          <span className="font-semibold text-foreground">{ride.price}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Payment Method */}
-                <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
-                  <div className="flex items-center gap-3">
-                    <CreditCard className="w-5 h-5 text-primary" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">WorldPay Secure</p>
-                      <p className="text-xs text-muted-foreground">**** **** **** 4242</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-primary">
-                    Change
-                  </Button>
-                </div>
-
-                {/* Book Button */}
-                <Button
-                  onClick={handleBookRide}
-                  disabled={!pickup || !dropoff || isBooking}
-                  className="w-full h-14 bg-primary text-primary-foreground hover:bg-primary/90 text-lg font-semibold group"
-                >
-                  {isBooking ? (
-                    <span className="flex items-center gap-2">
-                      <span className="h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                      Finding your ride...
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      Book Ride Now
-                      <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          {/* Map Preview */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="relative"
-          >
-            <Card className="bg-card border-border overflow-hidden">
-              <div className="aspect-square lg:aspect-[4/3] bg-secondary relative">
-                {/* Simulated Map */}
-                <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted">
-                  {/* Grid lines for map effect */}
-                  <div 
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                       linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                      backgroundSize: '40px 40px'
-                    }}
-                  />
-                  
-                  {/* Pickup marker */}
-                  <div className="absolute top-1/3 left-1/4 flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
-                      <MapPin className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <div className="mt-2 px-3 py-1 rounded-full bg-card text-xs font-medium text-foreground shadow">
-                      Pickup
-                    </div>
-                  </div>
-                  
-                  {/* Route line */}
-                  <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-                    <path
-                      d="M 25% 33% Q 50% 20%, 70% 60%"
-                      fill="none"
-                      stroke="var(--primary)"
-                      strokeWidth="3"
-                      strokeDasharray="8 4"
-                      className="opacity-60"
-                    />
-                  </svg>
-                  
-                  {/* Dropoff marker */}
-                  <div className="absolute bottom-1/3 right-1/4 flex flex-col items-center">
-                    <div className="w-8 h-8 rounded-full bg-destructive flex items-center justify-center shadow-lg">
-                      <MapPin className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="mt-2 px-3 py-1 rounded-full bg-card text-xs font-medium text-foreground shadow">
-                      Drop-off
-                    </div>
-                  </div>
-                  
-                  {/* Car icon moving */}
-                  <motion.div
-                    className="absolute"
-                    style={{ top: '40%', left: '40%' }}
-                    animate={{
-                      x: [0, 20, 40, 60],
-                      y: [0, -10, 5, 15],
-                    }}
-                    transition={{
-                      duration: 4,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
+                  <button
+                    onClick={() => setShowRideOptions(false)}
+                    className="text-emerald-400 text-sm font-medium hover:text-emerald-300"
                   >
-                    <div className="w-10 h-10 rounded-full bg-card border-2 border-primary flex items-center justify-center shadow-lg">
-                      <Car className="w-5 h-5 text-primary" />
-                    </div>
-                  </motion.div>
+                    Edit trip
+                  </button>
                 </div>
-                
-                {/* Map overlay info */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-card/95 backdrop-blur rounded-xl p-4 border border-border">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Estimated Time</span>
-                      <span className="font-semibold text-foreground">12 min</span>
+              )}
+
+              {/* Ride Options */}
+              <div className="space-y-2 mb-4">
+                {rideOptions.map((ride) => (
+                  <button
+                    key={ride.id}
+                    onClick={() => setSelectedRide(ride.id)}
+                    className={`w-full flex items-center justify-between p-3 rounded-xl transition-all ${
+                      selectedRide === ride.id
+                        ? "bg-emerald-500/10 border border-emerald-500/50"
+                        : "hover:bg-slate-800/50 border border-transparent"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                        selectedRide === ride.id ? "bg-emerald-500/20" : "bg-slate-700"
+                      }`}>
+                        <ride.icon className={`w-5 h-5 ${selectedRide === ride.id ? "text-emerald-400" : "text-slate-400"}`} />
+                      </div>
+                      <div className="text-left">
+                        <div className={`font-medium ${selectedRide === ride.id ? "text-emerald-400" : "text-white"}`}>
+                          {ride.name}
+                        </div>
+                        <div className="text-xs text-slate-400">{ride.time} away</div>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Distance</span>
-                      <span className="font-semibold text-foreground">4.2 miles</span>
+                    <div className={`font-semibold ${selectedRide === ride.id ? "text-emerald-400" : "text-white"}`}>
+                      {ride.price}
                     </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Schedule Options */}
+              <div className="flex gap-2 mb-4">
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-800/60 rounded-lg text-sm text-slate-300 hover:bg-slate-700/60 transition-colors">
+                  <Calendar className="w-4 h-4" />
+                  Today
+                </button>
+                <button className="flex-1 flex items-center justify-center gap-2 h-10 bg-slate-800/60 rounded-lg text-sm text-slate-300 hover:bg-slate-700/60 transition-colors">
+                  <Clock className="w-4 h-4" />
+                  Now
+                </button>
+              </div>
+
+              {/* Payment */}
+              <div className="flex items-center justify-between p-3 bg-slate-800/40 rounded-xl mb-4">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <p className="text-sm font-medium text-white">WorldPay Secure</p>
+                    <p className="text-xs text-slate-400">•••• 4242</p>
                   </div>
                 </div>
+                <button className="text-emerald-400 text-sm font-medium hover:text-emerald-300">
+                  Change
+                </button>
               </div>
-            </Card>
+
+              {/* Book Button */}
+              <Button
+                onClick={handleBookRide}
+                disabled={isBooking}
+                className="w-full h-12 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl shadow-lg shadow-emerald-500/30 transition-all"
+              >
+                {isBooking ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Finding driver...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Book {selectedRideOption?.name} • {selectedRideOption?.price}
+                    <ChevronRight className="w-5 h-5" />
+                  </span>
+                )}
+              </Button>
+            </div>
           </motion.div>
-        </div>
+        )}
       </div>
     </section>
   )

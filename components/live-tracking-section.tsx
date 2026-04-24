@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { 
   MapPin, 
@@ -19,12 +19,18 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import GoogleMapLive from "@/components/google-map-live"
 
 const mockMessages = [
   { id: 1, sender: "system", text: "Your driver is on the way.", time: "2:34 PM" },
   { id: 2, sender: "rider", text: "Hi, I am outside.", time: "2:35 PM" },
   { id: 3, sender: "driver", text: "Got it, arriving now.", time: "2:35 PM" },
 ]
+
+// Demo coordinates for Los Angeles area
+const DEMO_PICKUP = { lat: 34.0522, lng: -118.2537 }
+const DEMO_DROPOFF = { lat: 34.0622, lng: -118.2337 }
+const DEMO_DRIVER_START = { lat: 34.0482, lng: -118.2507 }
 
 export function LiveTrackingSection() {
   const [messages, setMessages] = useState(mockMessages)
@@ -33,6 +39,47 @@ export function LiveTrackingSection() {
   const [refundAmount, setRefundAmount] = useState("5.00")
   const [refundReason, setRefundReason] = useState("")
   const [refundStatus, setRefundStatus] = useState<"none" | "submitted" | "processing">("none")
+  
+  // Simulated driver position for demo
+  const [driverPosition, setDriverPosition] = useState({
+    lat: DEMO_DRIVER_START.lat,
+    lng: DEMO_DRIVER_START.lng,
+    heading: 45,
+    speedKph: 35
+  })
+
+  // Simulate driver movement towards pickup
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDriverPosition(prev => {
+        // Move driver towards pickup location
+        const targetLat = DEMO_PICKUP.lat
+        const targetLng = DEMO_PICKUP.lng
+        
+        const latDiff = targetLat - prev.lat
+        const lngDiff = targetLng - prev.lng
+        
+        // Calculate heading based on movement direction
+        const heading = Math.atan2(lngDiff, latDiff) * (180 / Math.PI)
+        
+        // Move 5% closer to target each step, with some randomness
+        const newLat = prev.lat + latDiff * 0.05 + (Math.random() - 0.5) * 0.0002
+        const newLng = prev.lng + lngDiff * 0.05 + (Math.random() - 0.5) * 0.0002
+        
+        // Simulate speed variations
+        const speedKph = 25 + Math.random() * 20
+        
+        return {
+          lat: newLat,
+          lng: newLng,
+          heading: heading + (Math.random() - 0.5) * 10,
+          speedKph
+        }
+      })
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return
@@ -100,76 +147,15 @@ export function LiveTrackingSection() {
                 </div>
               </CardHeader>
               <CardContent>
-                {/* Simulated Map */}
-                <div className="aspect-video rounded-xl bg-secondary relative overflow-hidden">
-                  {/* Grid Pattern */}
-                  <div 
-                    className="absolute inset-0 opacity-10"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                       linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                      backgroundSize: '30px 30px'
-                    }}
-                  />
-
-                  {/* Pickup Point */}
-                  <div className="absolute top-1/4 left-1/5 flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                      <MapPin className="w-5 h-5 text-primary-foreground" />
-                    </div>
-                    <span className="mt-1 text-xs bg-card px-2 py-1 rounded text-foreground">Pickup</span>
-                  </div>
-
-                  {/* Drop-off Point */}
-                  <div className="absolute bottom-1/4 right-1/5 flex flex-col items-center">
-                    <div className="w-10 h-10 rounded-full bg-destructive flex items-center justify-center shadow-lg shadow-destructive/30">
-                      <MapPin className="w-5 h-5 text-white" />
-                    </div>
-                    <span className="mt-1 text-xs bg-card px-2 py-1 rounded text-foreground">Drop-off</span>
-                  </div>
-
-                  {/* Animated Car */}
-                  <motion.div
-                    className="absolute"
-                    style={{ top: '45%', left: '35%' }}
-                    animate={{
-                      x: [0, 30, 60, 90, 120],
-                      y: [0, -15, 10, 25, 40],
-                      rotate: [0, 15, -10, 20, 30],
-                    }}
-                    transition={{
-                      duration: 8,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                  >
-                    <div className="w-12 h-12 rounded-full bg-card border-2 border-primary flex items-center justify-center shadow-xl">
-                      <Car className="w-6 h-6 text-primary" />
-                    </div>
-                  </motion.div>
-
-                  {/* Location Info Overlay */}
-                  <div className="absolute top-4 right-4 bg-card/95 backdrop-blur rounded-lg p-3 border border-border text-sm">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>Lat:</span>
-                        <span className="text-foreground font-mono">34.0522</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>Long:</span>
-                        <span className="text-foreground font-mono">-118.2437</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>Heading:</span>
-                        <span className="text-foreground font-mono">120 deg</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <span>Speed:</span>
-                        <span className="text-foreground font-mono">45 kph</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                {/* Real Google Maps */}
+                <GoogleMapLive
+                  pickup={DEMO_PICKUP}
+                  dropoff={DEMO_DROPOFF}
+                  driver={driverPosition}
+                  showRoute={true}
+                  height={350}
+                  className="rounded-xl"
+                />
 
                 {/* Ride Info Bar */}
                 <div className="mt-4 p-4 rounded-xl bg-secondary/50 border border-border">

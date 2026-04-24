@@ -4,25 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.1 0 0);
+  /* Deep navy dark theme with green accents */
+  --background: oklch(0.08 0.02 250);
   --foreground: oklch(0.98 0 0);
-  --card: oklch(0.15 0 0);
+  --card: oklch(0.12 0.015 250);
   --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.15 0 0);
+  --popover: oklch(0.12 0.015 250);
   --popover-foreground: oklch(0.98 0 0);
-  --primary: oklch(0.65 0.2 145);
+  --primary: oklch(0.72 0.19 155);
   --primary-foreground: oklch(0.1 0 0);
-  --secondary: oklch(0.2 0 0);
+  --secondary: oklch(0.16 0.01 250);
   --secondary-foreground: oklch(0.98 0 0);
-  --muted: oklch(0.25 0 0);
+  --muted: oklch(0.22 0.01 250);
   --muted-foreground: oklch(0.65 0 0);
-  --accent: oklch(0.65 0.2 145);
+  --accent: oklch(0.72 0.19 155);
   --accent-foreground: oklch(0.1 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(0.25 0 0);
-  --input: oklch(0.2 0 0);
-  --ring: oklch(0.65 0.2 145);
+  --border: oklch(0.22 0.02 250);
+  --input: oklch(0.16 0.01 250);
+  --ring: oklch(0.72 0.19 155);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -37,6 +38,9 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  /* Glass effect */
+  --glass-bg: rgba(18, 24, 38, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.08);
 }
 
 .dark {
@@ -237,4 +241,78 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* Google Places Autocomplete Dark Theme */
+.pac-container {
+  background-color: oklch(0.12 0.015 250) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+  margin-top: 8px !important;
+  font-family: 'Geist', sans-serif !important;
+  z-index: 9999 !important;
+}
+
+.pac-item {
+  padding: 12px 16px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  background-color: transparent !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease !important;
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+.pac-item-selected,
+.pac-item-selected:hover {
+  background-color: rgba(34, 197, 94, 0.15) !important;
+}
+
+.pac-item-query {
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+}
+
+.pac-item span:not(.pac-item-query) {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 13px !important;
+}
+
+.pac-icon {
+  filter: invert(1) brightness(0.7) !important;
+  margin-right: 12px !important;
+}
+
+.pac-icon-marker {
+  background-position: -1px -161px !important;
+}
+
+.pac-matched {
+  color: #22c55e !important;
+  font-weight: 600 !important;
+}
+
+/* Glass Card Effect */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+}
+
+/* Glow effects */
+.glow-green {
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.3), 0 0 40px rgba(34, 197, 94, 0.1);
+}
+
+.glow-green-sm {
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.2);
 }

@@ -1,31 +1,43 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { Plus, Minus } from "lucide-react"
+import { Plus, Minus, MapPin, Clock, Navigation } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 interface BookingMapProps {
   pickup?: { lat: number; lng: number } | null
   dropoff?: { lat: number; lng: number } | null
-  onPickupSelect?: (lat: number, lng: number) => void
-  onDropoffSelect?: (lat: number, lng: number) => void
+  onPickupSelect?: (lat: number, lng: number, address?: string) => void
+  onDropoffSelect?: (lat: number, lng: number, address?: string) => void
   height?: string
 }
 
 // Default to Colorado Springs
 const DEFAULT_CENTER = { lat: 38.8339, lng: -104.8214 }
 
-// Light/clean map styles
+// Professional map styling (similar to Uber/Google Maps)
 const MAP_STYLES: google.maps.MapTypeStyle[] = [
   { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+  { elementType: "labels.icon", stylers: [{ visibility: "on" }] },
   { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
   { elementType: "labels.text.stroke", stylers: [{ color: "#f5f5f5" }] },
+  { featureType: "administrative.country", elementType: "geometry.stroke", stylers: [{ color: "#cccccc" }] },
   { featureType: "poi", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
   { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+  { featureType: "poi.business", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
+  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#c8e6c9" }] },
   { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#dadada" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#e0e0e0" }] },
+  { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#fafafa" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#f9c5a9" }] },
+  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#e26d55" }] },
   { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+  { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+  { featureType: "transit.line", elementType: "geometry", stylers: [{ color: "#e5e5e5" }] },
+  { featureType: "transit.station", elementType: "geometry", stylers: [{ color: "#eeeeee" }] },
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
 ]
 
 let scriptLoaded = false
@@ -69,7 +81,7 @@ function loadGoogleMapsScript(): Promise<void> {
     }
 
     const script = document.createElement("script")
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry`
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&v=weekly`
     script.async = true
     script.defer = true
     
@@ -80,7 +92,7 @@ function loadGoogleMapsScript(): Promise<void> {
     
     script.onerror = () => {
       scriptLoading = null
-      reject(new Error("Failed to load Google Maps API"))
+      reject(new Error("Failed to load Google Maps API - check that Maps JavaScript API is enabled in Google Cloud Console"))
     }
 
     document.head.appendChild(script)
@@ -94,214 +106,299 @@ export function BookingMap({
   dropoff,
   onPickupSelect,
   onDropoffSelect,
-  height = "500px"
+  height = "600px"
 }: BookingMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<google.maps.Map | null>(null)
-  const pickupMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
-  const dropoffMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
+  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [mapMode, setMapMode] = useState<"pickup" | "dropoff" | null>(null)
+  const [selectedMode, setSelectedMode] = useState<"pickup" | "dropoff" | null>(null)
+  const [searchInput, setSearchInput] = useState("")
 
+  // Initialize map
   useEffect(() => {
-    if (!mapRef.current) return
-
-    const initializeMap = async () => {
+    async function initializeMap() {
       try {
+        setLoading(true)
         await loadGoogleMapsScript()
 
         if (!mapRef.current) return
 
+        // Create map instance
         const map = new google.maps.Map(mapRef.current, {
           center: DEFAULT_CENTER,
-          zoom: 13,
+          zoom: 14,
           styles: MAP_STYLES,
-          disableDefaultUI: true,
+          disableDefaultUI: false,
           zoomControl: true,
+          mapTypeControl: false,
+          fullscreenControl: true,
+          streetViewControl: true,
+          rotateControl: false,
+          scaleControl: true,
           zoomControlOptions: {
             position: google.maps.ControlPosition.RIGHT_BOTTOM,
           },
         })
 
         mapInstanceRef.current = map
-        setIsLoading(false)
+        geocoderRef.current = new google.maps.Geocoder()
 
-        // Map click handler for selecting locations
-        map.addListener("click", async (event: google.maps.MapMouseEvent) => {
-          if (!event.latLng) return
+        // Try to get user's current location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }
+              map.setCenter(userLocation)
+            },
+            (error) => {
+              console.log("[v0] Geolocation error:", error.message)
+            }
+          )
+        }
 
-          const lat = event.latLng.lat()
-          const lng = event.latLng.lng()
+        // Map click handler for location selection
+        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+          if (selectedMode && e.latLng) {
+            const lat = e.latLng.lat()
+            const lng = e.latLng.lng()
 
-          if (mapMode === "pickup") {
-            onPickupSelect?.(lat, lng)
-            addPickupMarker(lat, lng, map)
-          } else if (mapMode === "dropoff") {
-            onDropoffSelect?.(lat, lng)
-            addDropoffMarker(lat, lng, map)
+            // Reverse geocode to get address
+            if (geocoderRef.current) {
+              geocoderRef.current.geocode(
+                { location: { lat, lng } },
+                (results, status) => {
+                  if (status === google.maps.GeocoderStatus.OK && results?.[0]) {
+                    const address = results[0].formatted_address
+                    if (selectedMode === "pickup") {
+                      onPickupSelect?.(lat, lng, address)
+                      updatePickupMarker(lat, lng)
+                    } else {
+                      onDropoffSelect?.(lat, lng, address)
+                      updateDropoffMarker(lat, lng)
+                    }
+                  }
+                }
+              )
+            }
           }
         })
+
+        setLoading(false)
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load map")
-        setIsLoading(false)
+        setError(err instanceof Error ? err.message : "Failed to load Google Maps")
+        setLoading(false)
       }
     }
 
     initializeMap()
   }, [onPickupSelect, onDropoffSelect])
 
+  // Update pickup marker
+  const updatePickupMarker = (lat: number, lng: number) => {
+    if (!mapInstanceRef.current) return
+
+    if (pickupMarkerRef.current) {
+      pickupMarkerRef.current.setMap(null)
+    }
+
+    pickupMarkerRef.current = new google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstanceRef.current,
+      title: "Pickup Location",
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: "#22c55e",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 3,
+      },
+    })
+
+    mapInstanceRef.current.panTo({ lat, lng })
+  }
+
+  // Update dropoff marker
+  const updateDropoffMarker = (lat: number, lng: number) => {
+    if (!mapInstanceRef.current) return
+
+    if (dropoffMarkerRef.current) {
+      dropoffMarkerRef.current.setMap(null)
+    }
+
+    dropoffMarkerRef.current = new google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstanceRef.current,
+      title: "Dropoff Location",
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: "#ef4444",
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 3,
+      },
+    })
+
+    mapInstanceRef.current.panTo({ lat, lng })
+  }
+
   // Update markers when props change
   useEffect(() => {
-    if (!mapInstanceRef.current) return
-
     if (pickup) {
-      addPickupMarker(pickup.lat, pickup.lng, mapInstanceRef.current)
+      updatePickupMarker(pickup.lat, pickup.lng)
     }
+  }, [pickup])
+
+  useEffect(() => {
     if (dropoff) {
-      addDropoffMarker(dropoff.lat, dropoff.lng, mapInstanceRef.current)
+      updateDropoffMarker(dropoff.lat, dropoff.lng)
     }
-  }, [pickup, dropoff])
+  }, [dropoff])
 
-  const addPickupMarker = (lat: number, lng: number, map: google.maps.Map) => {
-    // Remove existing marker
-    if (pickupMarkerRef.current) {
-      pickupMarkerRef.current.map = null
-    }
+  // Search handler
+  const handleSearch = async (query: string, type: "pickup" | "dropoff") => {
+    if (!query || !geocoderRef.current || !mapInstanceRef.current) return
 
-    const pickupDiv = document.createElement("div")
-    pickupDiv.innerHTML = `
-      <div class="flex items-center justify-center w-10 h-10 bg-green-500 rounded-full border-2 border-white shadow-lg">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4v.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-      </div>
-    `
+    try {
+      const results = await new Promise<google.maps.GeocoderResult[]>((resolve, reject) => {
+        geocoderRef.current!.geocode({ address: query }, (results, status) => {
+          if (status === google.maps.GeocoderStatus.OK && results) {
+            resolve(results)
+          } else {
+            reject(new Error("Address not found"))
+          }
+        })
+      })
 
-    pickupMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
-      map,
-      position: { lat, lng },
-      content: pickupDiv,
-    })
-  }
+      if (results[0]?.geometry?.location) {
+        const location = results[0].geometry.location
+        const lat = location.lat()
+        const lng = location.lng()
+        const address = results[0].formatted_address
 
-  const addDropoffMarker = (lat: number, lng: number, map: google.maps.Map) => {
-    // Remove existing marker
-    if (dropoffMarkerRef.current) {
-      dropoffMarkerRef.current.map = null
-    }
+        if (type === "pickup") {
+          onPickupSelect?.(lat, lng, address)
+          updatePickupMarker(lat, lng)
+        } else {
+          onDropoffSelect?.(lat, lng, address)
+          updateDropoffMarker(lat, lng)
+        }
 
-    const dropoffDiv = document.createElement("div")
-    dropoffDiv.innerHTML = `
-      <div class="flex items-center justify-center w-10 h-10 bg-red-500 rounded-full border-2 border-white shadow-lg">
-        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>
-      </div>
-    `
-
-    dropoffMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
-      map,
-      position: { lat, lng },
-      content: dropoffDiv,
-    })
-  }
-
-  const handleZoom = (direction: "in" | "out") => {
-    if (!mapInstanceRef.current) return
-    const currentZoom = mapInstanceRef.current.getZoom()
-    if (currentZoom) {
-      mapInstanceRef.current.setZoom(
-        direction === "in" ? currentZoom + 1 : currentZoom - 1
-      )
+        mapInstanceRef.current.fitBounds(results[0].geometry.bounds!)
+      }
+    } catch (err) {
+      console.error("[v0] Search error:", err)
     }
   }
 
   if (error) {
     return (
-      <div
-        style={{ height }}
-        className="bg-gray-100 rounded-lg flex items-center justify-center"
-      >
-        <div className="text-center">
-          <p className="text-gray-600 mb-2">Unable to load map</p>
-          <p className="text-sm text-gray-500">{error}</p>
+      <div className={`w-full flex items-center justify-center bg-gray-100 rounded-lg`} style={{ height }}>
+        <div className="text-center p-8">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Map Failed to Load</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-sm text-gray-500">Please ensure the Google Maps API is properly configured in your Google Cloud Console.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="relative" style={{ height }}>
-      <div ref={mapRef} className="w-full h-full rounded-lg overflow-hidden" />
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center rounded-lg">
-          <div className="text-center">
-            <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-sm text-gray-600">Loading map...</p>
+    <div className="w-full flex flex-col" style={{ height }}>
+      {/* Search Bar */}
+      <div className="bg-white border-b border-gray-200 p-4 shadow-sm">
+        <div className="flex gap-2">
+          <div className="flex-1 flex gap-2">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Search pickup location..."
+                value={selectedMode === "pickup" ? searchInput : ""}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && selectedMode === "pickup") {
+                    handleSearch(searchInput, "pickup")
+                  }
+                }}
+                className="w-full"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedMode("pickup")
+                if (searchInput) handleSearch(searchInput, "pickup")
+              }}
+              variant={selectedMode === "pickup" ? "default" : "outline"}
+              className="gap-2"
+            >
+              <MapPin className="w-4 h-4" />
+              Pickup
+            </Button>
+          </div>
+          <div className="flex-1 flex gap-2">
+            <div className="flex-1">
+              <Input
+                type="text"
+                placeholder="Search dropoff location..."
+                value={selectedMode === "dropoff" ? searchInput : ""}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === "Enter" && selectedMode === "dropoff") {
+                    handleSearch(searchInput, "dropoff")
+                  }
+                }}
+                className="w-full"
+              />
+            </div>
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedMode("dropoff")
+                if (searchInput) handleSearch(searchInput, "dropoff")
+              }}
+              variant={selectedMode === "dropoff" ? "default" : "outline"}
+              className="gap-2"
+            >
+              <Navigation className="w-4 h-4" />
+              Dropoff
+            </Button>
           </div>
         </div>
-      )}
+        <p className="text-xs text-gray-500 mt-2">
+          {selectedMode 
+            ? `Click on the map to set ${selectedMode} location`
+            : "Select pickup or dropoff mode to use map selection"
+          }
+        </p>
+      </div>
 
-      {/* Mode indicator and zoom controls */}
-      {!isLoading && (
-        <>
-          {/* Map mode buttons */}
-          <div className="absolute top-4 left-4 space-y-2">
-            <button
-              onClick={() => setMapMode(mapMode === "pickup" ? null : "pickup")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                mapMode === "pickup"
-                  ? "bg-green-500 text-white"
-                  : "bg-white text-gray-700 hover:shadow-md"
-              }`}
-            >
-              <div className="w-3 h-3 rounded-full bg-green-500 border-2 border-current"></div>
-              Pickup
-            </button>
-            <button
-              onClick={() => setMapMode(mapMode === "dropoff" ? null : "dropoff")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
-                mapMode === "dropoff"
-                  ? "bg-red-500 text-white"
-                  : "bg-white text-gray-700 hover:shadow-md"
-              }`}
-            >
-              <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-current"></div>
-              Dropoff
-            </button>
-          </div>
-
-          {/* Zoom controls */}
-          <div className="absolute right-4 bottom-4 space-y-1">
-            <button
-              onClick={() => handleZoom("in")}
-              className="bg-white p-2 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-              aria-label="Zoom in"
-            >
-              <Plus className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => handleZoom("out")}
-              className="bg-white p-2 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-              aria-label="Zoom out"
-            >
-              <Minus className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Instructions */}
-          {mapMode && (
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-              <div className="bg-black bg-opacity-75 text-white px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap">
-                Click on map to set {mapMode} location
-              </div>
+      {/* Map Container */}
+      <div className="flex-1 relative bg-gray-100">
+        <div ref={mapRef} className="w-full h-full" />
+        
+        {loading && (
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4" />
+              <p className="text-gray-600">Loading map...</p>
             </div>
-          )}
-        </>
-      )}
+          </div>
+        )}
+
+        {/* Map Attribution */}
+        <div className="absolute bottom-4 right-4 bg-white/95 px-3 py-1.5 rounded text-xs text-gray-600 shadow-sm">
+          GlideWay Maps
+        </div>
+      </div>
     </div>
   )
 }

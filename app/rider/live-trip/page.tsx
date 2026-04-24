@@ -90,12 +90,16 @@ export default function LiveTripPage() {
     setTimeout(() => setCallStatus("connected"), 2000)
   }
 
+  const handleEndCall = () => {
+    setCallStatus("ready")
+  }
+
   return (
     <div className="min-h-screen bg-slate-950">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-sm border-b border-slate-800">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link href="/rider" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
+          <Link href="/rider" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors cursor-pointer">
             <ChevronLeft className="w-5 h-5" />
             <span className="text-sm">Back to App</span>
           </Link>
@@ -109,7 +113,7 @@ export default function LiveTripPage() {
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-emerald-900/50 to-blue-900/50 rounded-2xl p-4 border border-emerald-800/50"
+          className="bg-gradient-to-r from-emerald-900/50 to-blue-900/50 rounded-2xl p-4 border border-emerald-800/50 cursor-pointer hover:border-emerald-700/50 transition-all"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -130,7 +134,7 @@ export default function LiveTripPage() {
         </motion.div>
 
         {/* Live Map */}
-        <Card className="bg-slate-900/50 border-slate-800 overflow-hidden">
+        <Card className="bg-slate-900/50 border-slate-800 overflow-hidden cursor-pointer hover:border-slate-700 transition-all">
           <CardContent className="p-0">
             <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -158,16 +162,16 @@ export default function LiveTripPage() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Driver Info */}
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-2xl font-bold">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center text-white text-2xl font-bold hover:shadow-lg transition-all">
                   JD
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-white text-lg">John Driver</h3>
                   <p className="text-sm text-slate-400">Toyota Camry - ABC 123</p>
-                  <div className="flex items-center gap-1 mt-1">
+                  <div className="flex items-center gap-1 mt-1 cursor-pointer hover:text-yellow-400 transition-colors">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                     <span className="text-sm text-white">4.92</span>
                     <span className="text-xs text-slate-500">(2,341 rides)</span>
@@ -179,28 +183,40 @@ export default function LiveTripPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Button 
                   variant="outline" 
-                  className="border-slate-700 text-white hover:bg-slate-800"
+                  className="border-slate-700 text-white hover:bg-slate-800 cursor-pointer transition-all"
                   onClick={handleCall}
                   disabled={callStatus !== "ready"}
                 >
                   <Phone className="w-4 h-4 mr-2 text-emerald-400" />
                   {callStatus === "ready" ? "Call Driver" : callStatus === "calling" ? "Calling..." : "Connected"}
                 </Button>
-                <Button variant="outline" className="border-slate-700 text-white hover:bg-slate-800">
-                  <MessageCircle className="w-4 h-4 mr-2 text-blue-400" />
-                  Message
-                </Button>
+                {callStatus === "connected" && (
+                  <Button 
+                    variant="outline" 
+                    className="border-red-700 text-red-400 hover:bg-red-900/30 cursor-pointer transition-all"
+                    onClick={handleEndCall}
+                  >
+                    <Phone className="w-4 h-4 mr-2" />
+                    End Call
+                  </Button>
+                )}
+                {callStatus !== "connected" && (
+                  <Button variant="outline" className="border-slate-700 text-white hover:bg-slate-800 cursor-pointer transition-all">
+                    <MessageCircle className="w-4 h-4 mr-2 text-blue-400" />
+                    Message
+                  </Button>
+                )}
               </div>
 
-              <div className="mt-4 p-3 bg-slate-800/50 rounded-lg flex items-center gap-2">
-                <Shield className="w-5 h-5 text-emerald-400" />
+              <div className="mt-4 p-3 bg-slate-800/50 rounded-lg flex items-center gap-2 cursor-pointer hover:bg-slate-800 transition-all">
+                <Shield className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                 <span className="text-sm text-slate-300">Your number stays private with masked calling</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Chat */}
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-all">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-4">
                 <MessageCircle className="w-5 h-5 text-blue-400" />
@@ -211,16 +227,16 @@ export default function LiveTripPage() {
                 {messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.from === "rider" ? "justify-end" : "justify-start"}`}
+                    className={`flex ${msg.from === "rider" ? "justify-end" : "justify-start"} cursor-pointer hover:opacity-80 transition-opacity`}
                   >
                     <div
                       className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
                         msg.from === "rider"
-                          ? "bg-emerald-600 text-white"
+                          ? "bg-emerald-600 text-white hover:bg-emerald-700"
                           : msg.from === "system"
                           ? "bg-slate-700/50 text-slate-300 italic"
-                          : "bg-slate-700 text-white"
-                      }`}
+                          : "bg-slate-700 text-white hover:bg-slate-600"
+                      } transition-all`}
                     >
                       {msg.text}
                     </div>
@@ -234,12 +250,12 @@ export default function LiveTripPage() {
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 cursor-text"
                 />
                 <Button
                   size="icon"
                   onClick={handleSendMessage}
-                  className="bg-emerald-600 hover:bg-emerald-700"
+                  className="bg-emerald-600 hover:bg-emerald-700 cursor-pointer transition-all"
                 >
                   <Send className="w-4 h-4" />
                 </Button>
@@ -249,32 +265,32 @@ export default function LiveTripPage() {
         </div>
 
         {/* Trip Details */}
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card className="bg-slate-900/50 border-slate-800 hover:border-slate-700 transition-all cursor-pointer">
           <CardContent className="p-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-slate-800/50 rounded-xl">
+              <div className="text-center p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-all cursor-pointer">
                 <MapPin className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
                 <div className="text-xs text-slate-500">Pickup</div>
                 <div className="text-sm font-medium text-white truncate">123 Main St</div>
               </div>
-              <div className="text-center p-3 bg-slate-800/50 rounded-xl">
+              <div className="text-center p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-all cursor-pointer">
                 <MapPin className="w-5 h-5 text-red-400 mx-auto mb-2" />
                 <div className="text-xs text-slate-500">Drop-off</div>
                 <div className="text-sm font-medium text-white truncate">LAX Terminal 4</div>
               </div>
-              <div className="text-center p-3 bg-slate-800/50 rounded-xl">
+              <div className="text-center p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-all cursor-pointer">
                 <Clock className="w-5 h-5 text-blue-400 mx-auto mb-2" />
                 <div className="text-xs text-slate-500">Est. Duration</div>
                 <div className="text-sm font-medium text-white">25 min</div>
               </div>
-              <div className="text-center p-3 bg-slate-800/50 rounded-xl">
+              <div className="text-center p-3 bg-slate-800/50 rounded-xl hover:bg-slate-800 transition-all cursor-pointer">
                 <DollarSign className="w-5 h-5 text-emerald-400 mx-auto mb-2" />
                 <div className="text-xs text-slate-500">Estimated Fare</div>
                 <div className="text-sm font-medium text-white">$32.50</div>
               </div>
             </div>
 
-            <div className="mt-4 p-4 bg-gradient-to-r from-emerald-900/30 to-blue-900/30 rounded-xl border border-emerald-800/50 flex items-center justify-between">
+            <div className="mt-4 p-4 bg-gradient-to-r from-emerald-900/30 to-blue-900/30 rounded-xl border border-emerald-800/50 flex items-center justify-between cursor-pointer hover:border-emerald-700 transition-all">
               <div className="flex items-center gap-3">
                 <DollarSign className="w-6 h-6 text-emerald-400" />
                 <div>
@@ -290,7 +306,7 @@ export default function LiveTripPage() {
         </Card>
 
         {/* Emergency/Help */}
-        <Card className="bg-red-950/30 border-red-900/50">
+        <Card className="bg-red-950/30 border-red-900/50 hover:border-red-900 transition-all cursor-pointer">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -300,7 +316,7 @@ export default function LiveTripPage() {
                   <div className="text-sm text-slate-400">Emergency assistance available 24/7</div>
                 </div>
               </div>
-              <Button variant="outline" className="border-red-800 text-red-400 hover:bg-red-900/30">
+              <Button variant="outline" className="border-red-800 text-red-400 hover:bg-red-900/30 cursor-pointer transition-all">
                 Get Help
               </Button>
             </div>

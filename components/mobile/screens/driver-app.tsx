@@ -21,11 +21,7 @@ interface ActiveTrip {
   fare: number
 }
 
-interface DriverAppProps {
-  onSwitchToRider?: () => void
-}
-
-export function DriverApp({ onSwitchToRider }: DriverAppProps) {
+export function DriverApp() {
   const [screen, setScreen] = useState<"home" | "earnings" | "profile" | "register">("home")
   const [isOnline, setIsOnline] = useState(false)
   const [incomingRide, setIncomingRide] = useState<RideRequest | null>(null)

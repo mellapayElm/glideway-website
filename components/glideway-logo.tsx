@@ -3,7 +3,7 @@
 /**
  * GlideWay Official Logo Component
  * Circular emblem with motion lines, curved road path, and wordmark
- * Based on official brand guide
+ * Based on official brand screenshot
  */
 
 interface LogoProps {
@@ -12,26 +12,29 @@ interface LogoProps {
   className?: string
 }
 
-// The official GlideWay icon SVG - bright green C-shape with motion lines and white road
+// The official GlideWay icon SVG - green arc with motion lines and white road
 function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 160 160" className="flex-shrink-0">
-      {/* Bright lime green curved C-shape emblem */}
+    <svg width={size} height={size} viewBox="0 0 200 200" className="flex-shrink-0">
+      {/* Bright lime green circular arc - top portion of circle */}
       <path
-        d="M 50 25 A 55 55 0 0 1 115 90 L 105 100 A 45 45 0 0 0 60 35 Z"
-        fill="#7CFF3A"
+        d="M 50 100 A 60 60 0 0 1 150 100"
+        stroke="#7CFF3A"
+        strokeWidth="18"
+        fill="none"
+        strokeLinecap="round"
       />
 
-      {/* Motion speed lines - horizontal on left */}
-      <line x1="12" y1="55" x2="48" y2="55" stroke="#7CFF3A" strokeWidth="6" strokeLinecap="round" />
-      <line x1="18" y1="80" x2="48" y2="80" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" opacity="0.8" />
-      <line x1="22" y1="105" x2="48" y2="105" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+      {/* Motion speed lines - horizontal on left side, decreasing */}
+      <line x1="10" y1="70" x2="50" y2="70" stroke="#7CFF3A" strokeWidth="7" strokeLinecap="round" />
+      <line x1="15" y1="100" x2="50" y2="100" stroke="#7CFF3A" strokeWidth="6" strokeLinecap="round" opacity="0.8" />
+      <line x1="20" y1="130" x2="50" y2="130" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" opacity="0.5" />
 
-      {/* White curved road/path - flows from inside emblem to right */}
+      {/* White curved S-shape/swoosh road element - inside the arc */}
       <path
-        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
+        d="M 65 115 Q 85 95 105 75 Q 125 55 145 50"
         stroke="#ffffff"
-        strokeWidth="16"
+        strokeWidth="20"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -39,25 +42,12 @@ function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }
 
       {/* Road center dashed line - bright green */}
       <path
-        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
+        d="M 65 115 Q 85 95 105 75 Q 125 55 145 50"
         stroke="#7CFF3A"
         strokeWidth="3"
         fill="none"
         strokeLinecap="round"
-        strokeDasharray="6,6"
-      />
-    </svg>
-  )
-}
-
-      {/* Road center dashed line - bright green */}
-      <path
-        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
-        stroke="#7CFF3A"
-        strokeWidth="3"
-        fill="none"
-        strokeLinecap="round"
-        strokeDasharray="6,6"
+        strokeDasharray="7,7"
       />
     </svg>
   )
@@ -65,10 +55,10 @@ function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }
 
 export function GlidewayLogo({ variant = 'horizontal', size = 'md', className = '' }: LogoProps) {
   const sizes = {
-    sm: { icon: 36, text: 16 },
-    md: { icon: 48, text: 20 },
-    lg: { icon: 72, text: 28 },
-    xl: { icon: 96, text: 36 },
+    sm: { icon: 40, text: 16 },
+    md: { icon: 56, text: 22 },
+    lg: { icon: 80, text: 32 },
+    xl: { icon: 120, text: 44 },
   }
 
   const { icon: iconSize, text: textSize } = sizes[size]
@@ -85,20 +75,20 @@ export function GlidewayLogo({ variant = 'horizontal', size = 'md', className = 
   // Full variant - stacked logo with icon, wordmark, and tagline
   if (variant === 'full') {
     return (
-      <div className={`flex flex-col items-center gap-3 ${className}`}>
-        <GlideWayIcon size={iconSize * 1.5} id="full" />
+      <div className={`flex flex-col items-center gap-4 ${className}`}>
+        <GlideWayIcon size={iconSize} id="full" />
 
-        <div className="text-center font-bold tracking-wide" style={{ fontSize: `${textSize}px` }}>
+        <div className="text-center font-bold tracking-tight" style={{ fontSize: `${textSize}px`, lineHeight: 1 }}>
           <span className="text-white">GLIDE</span>
           <span className="text-[#7CFF3A]">WAY</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="w-6 h-px bg-[#7CFF3A]" />
-          <span className="text-[#7CFF3A] text-xs font-semibold tracking-widest">
+        <div className="flex items-center gap-3 justify-center">
+          <span className="w-8 h-px bg-[#7CFF3A]" />
+          <span className="text-[#7CFF3A] text-xs font-bold tracking-widest whitespace-nowrap">
             RIDE SMOOTHLY, GLIDE EASILY
           </span>
-          <span className="w-6 h-px bg-[#7CFF3A]" />
+          <span className="w-8 h-px bg-[#7CFF3A]" />
         </div>
       </div>
     )
@@ -106,19 +96,19 @@ export function GlidewayLogo({ variant = 'horizontal', size = 'md', className = 
 
   // Horizontal variant - icon + text side by side for headers
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-4 ${className}`}>
       <GlideWayIcon size={iconSize} id="horiz" />
 
-      <div className="flex flex-col">
-        <div className="font-bold text-white tracking-wide" style={{ fontSize: `${textSize}px`, lineHeight: 1.1 }}>
+      <div className="flex flex-col justify-center">
+        <div className="font-bold text-white tracking-tight" style={{ fontSize: `${textSize}px`, lineHeight: 1.1 }}>
           GLIDE<span className="text-[#7CFF3A]">WAY</span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-px bg-[#7CFF3A]" />
-          <span className="text-[#7CFF3A] text-[10px] font-semibold tracking-wider">
-            RIDE SMOOTHLY, GLIDE EASILY
+        <div className="flex items-center gap-2 mt-1">
+          <span className="w-4 h-px bg-[#7CFF3A]" />
+          <span className="text-[#7CFF3A] text-[11px] font-bold tracking-wider">
+            RIDE SMOOTHLY
           </span>
-          <span className="w-3 h-px bg-[#7CFF3A]" />
+          <span className="w-4 h-px bg-[#7CFF3A]" />
         </div>
       </div>
     </div>

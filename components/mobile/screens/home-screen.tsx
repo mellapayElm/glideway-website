@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Calendar, Users, MapPin, Clock, Navigation, Plus, X } from "lucide-react"
 import { loadGoogleMaps } from "@/lib/google-maps-loader"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 const RIDE_TYPES = [
   { id: "economy", name: "Economy", price: "$26.96", time: "in 8 min", seats: 4, description: "Affordable rides" },
@@ -456,9 +457,15 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
 
       {/* Content Overlay */}
       <div className="relative z-[5] flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4">
-          <h1 className="text-3xl font-bold text-white mb-4">{greeting}</h1>
+        {/* Header with Logo */}
+        <div className="p-4 space-y-3">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <GlidewayLogo variant="icon" size="md" />
+            <div>
+              <h1 className="text-2xl font-bold text-white">{greeting}</h1>
+            </div>
+          </div>
           
           {/* Search Box */}
           <button

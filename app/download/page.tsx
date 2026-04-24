@@ -10,7 +10,6 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { GlidewayLogo } from "@/components/glideway-logo"
 
 export default function DownloadPage() {
   const [activeTab, setActiveTab] = useState<"rider" | "driver">("rider")
@@ -45,8 +44,8 @@ export default function DownloadPage() {
       <header className="sticky top-0 z-50 bg-slate-900/90 backdrop-blur-sm border-b border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <Link href="/">
-              <GlidewayLogo className="h-10" />
+            <Link href="/" className="text-xl font-bold tracking-tight">
+              <span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span>
             </Link>
             <div className="flex items-center gap-4">
               <Link href="/rider">
@@ -184,7 +183,7 @@ export default function DownloadPage() {
                   {/* App Content Preview */}
                   <div className="pt-10 h-full bg-gradient-to-b from-slate-900 to-slate-950 p-4">
                     <div className="flex items-center justify-between mb-6">
-                      <GlidewayLogo className="h-8" />
+                      <span className="text-sm font-bold"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></span>
                       <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
                         JD
                       </div>
@@ -369,7 +368,7 @@ export default function DownloadPage() {
       <footer className="py-8 border-t border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <GlidewayLogo className="h-8" />
+            <span className="text-lg font-bold tracking-tight"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></span>
             <div className="flex items-center gap-6 text-sm text-slate-400">
               <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white">Terms of Service</Link>

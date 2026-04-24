@@ -2,7 +2,6 @@
 
 import Link from "next/link"
 import { Instagram, Twitter, Linkedin, Facebook, Mail, Phone, MapPin } from "lucide-react"
-import { GlidewayIconMark } from "@/components/glideway-logo"
 
 const quickLinks = [
   { label: "Home", href: "#home" },
@@ -29,16 +28,13 @@ export function Footer() {
         <div className="grid md:grid-cols-3 gap-12 mb-12">
           {/* Col 1 — Wordmark + tagline + socials */}
           <div className="space-y-5">
-            <Link href="/" className="flex items-center gap-3 hover:opacity-85 transition-opacity w-fit">
-              <GlidewayIconMark className="w-9 h-9" />
-              <div className="flex flex-col leading-none">
-                <span className="text-[17px] font-bold tracking-tight text-foreground">
-                  Glideway<span className="text-[#22C55E]">Ride</span>
-                </span>
-                <span className="text-[9px] text-muted-foreground tracking-widest uppercase mt-0.5">
-                  Ride Smoothly, Glide Easily
-                </span>
-              </div>
+            <Link href="/" className="flex flex-col leading-none hover:opacity-85 transition-opacity w-fit">
+              <span className="text-[17px] font-bold tracking-tight">
+                <span className="text-foreground">GLIDE</span><span className="text-lime-400">WAY</span>
+              </span>
+              <span className="text-[9px] text-muted-foreground tracking-widest uppercase mt-0.5">
+                Ride Smoothly, Glide Easily
+              </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               Premium transportation built around comfort, safety, efficiency, and trust — available in 100+ cities, 24/7.

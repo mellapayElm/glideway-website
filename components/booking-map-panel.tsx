@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState, useCallback } from "react"
-import { Loader } from "@googlemaps/js-api-loader"
 import { MapPin, Clock, Route, Locate, X, ChevronRight, Car, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -46,6 +45,29 @@ const LIGHT_MAP_STYLES: google.maps.MapTypeStyle[] = [
   { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
   { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
 ]
+
+// Global script loading state
+let googleMapsPromise: Promise<void> | null = null
+
+function loadGoogleMaps(apiKey: string): Promise<void> {
+  if (googleMapsPromise) return googleMapsPromise
+  
+  if (typeof window !== "undefined" && window.google?.maps) {
+    return Promise.resolve()
+  }
+
+  googleMapsPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry,directions&v=weekly`
+    script.async = true
+    script.defer = true
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error("Failed to load Google Maps script"))
+    document.head.appendChild(script)
+  })
+
+  return googleMapsPromise
+}
 
 export function BookingMapPanel({
   pickup = "",
@@ -162,13 +184,7 @@ export function BookingMapPanel({
       }
 
       try {
-        const loader = new Loader({
-          apiKey,
-          version: "weekly",
-          libraries: ["places", "geometry"],
-        })
-
-        await loader.load()
+        await loadGoogleMaps(apiKey)
         if (!mounted || !mapRef.current) return
 
         setMapsLoaded(true)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 
 // Ride type options with colors
 const RIDE_TYPES = [
@@ -21,6 +21,74 @@ export function GlideWayRide() {
   const [estimatedFare, setEstimatedFare] = useState(0)
   const [estimatedDistance, setEstimatedDistance] = useState(0)
   const [isSearching, setIsSearching] = useState(false)
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapError, setMapError] = useState<string | null>(null)
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+
+  // Initialize Google Maps
+  useEffect(() => {
+    const initMap = async () => {
+      if (!mapRef.current) return
+      
+      try {
+        // Load Google Maps script
+        if (!window.google?.maps) {
+          const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+          if (!apiKey) {
+            setMapError("Google Maps API key not configured")
+            return
+          }
+
+          const script = document.createElement("script")
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly`
+          script.async = true
+          script.defer = true
+          
+          await new Promise<void>((resolve, reject) => {
+            script.onload = () => resolve()
+            script.onerror = () => reject(new Error("Failed to load Google Maps"))
+            document.head.appendChild(script)
+          })
+        }
+
+        // Create map instance
+        const map = new window.google.maps.Map(mapRef.current, {
+          center: { lat: 38.8339, lng: -104.8214 }, // Colorado Springs
+          zoom: 13,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: true,
+          zoomControl: true,
+          styles: [
+            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+            { featureType: "transit", elementType: "labels", stylers: [{ visibility: "off" }] },
+          ],
+        })
+
+        mapInstanceRef.current = map
+        setMapLoaded(true)
+
+        // Try to get user location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const userLoc = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              }
+              map.setCenter(userLoc)
+            },
+            () => {} // Ignore errors
+          )
+        }
+      } catch (err) {
+        setMapError(err instanceof Error ? err.message : "Map failed to load")
+      }
+    }
+
+    initMap()
+  }, [])
 
   // Calculate fare estimate in real-time
   useEffect(() => {
@@ -43,13 +111,12 @@ export function GlideWayRide() {
   // Handle search
   const handleSearch = () => {
     if (!pickup || !dropoff) {
-      alert("Please enter both pickup and dropoff locations")
       return
     }
     setIsSearching(true)
     setTimeout(() => {
       setIsSearching(false)
-      alert(`Searching for ${RIDE_TYPES.find(r => r.id === selectedRide)?.name} ride...`)
+      // In production, this would connect to a backend to find drivers
     }, 2000)
   }
 
@@ -58,12 +125,20 @@ export function GlideWayRide() {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setPickup(`${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`)
+          const lat = position.coords.latitude
+          const lng = position.coords.longitude
+          setPickup(`${lat.toFixed(4)}, ${lng.toFixed(4)}`)
+          
+          // Center map on user location
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setCenter({ lat, lng })
+            mapInstanceRef.current.setZoom(15)
+          }
         },
-        () => alert("Unable to get location. Please enable location access.")
+        () => {
+          setPickup("Location unavailable - please enter manually")
+        }
       )
-    } else {
-      alert("Geolocation is not supported by your browser")
     }
   }
 
@@ -315,49 +390,40 @@ export function GlideWayRide() {
               )}
             </div>
 
-            {/* Map Placeholder */}
+            {/* Google Maps */}
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-              <div className="h-80 bg-gradient-to-br from-green-100 via-blue-50 to-green-50 relative">
-                {/* Stylized Map Background */}
-                <div className="absolute inset-0 opacity-30">
-                  <svg className="w-full h-full" viewBox="0 0 400 300">
-                    {/* Roads */}
-                    <line x1="0" y1="100" x2="400" y2="100" stroke="#94a3b8" strokeWidth="3" />
-                    <line x1="0" y1="200" x2="400" y2="200" stroke="#94a3b8" strokeWidth="3" />
-                    <line x1="100" y1="0" x2="100" y2="300" stroke="#94a3b8" strokeWidth="3" />
-                    <line x1="250" y1="0" x2="250" y2="300" stroke="#94a3b8" strokeWidth="3" />
-                    <line x1="0" y1="0" x2="200" y2="150" stroke="#94a3b8" strokeWidth="2" />
-                    <line x1="400" y1="50" x2="300" y2="250" stroke="#94a3b8" strokeWidth="2" />
-                  </svg>
-                </div>
-                
-                {/* Park areas */}
-                <div className="absolute top-8 right-12 w-20 h-16 bg-green-300/50 rounded-lg" />
-                <div className="absolute bottom-16 left-8 w-24 h-12 bg-green-300/50 rounded-lg" />
-                
-                {/* Water */}
-                <div className="absolute bottom-4 right-4 w-32 h-20 bg-blue-300/40 rounded-full" />
+              <div className="h-80 relative bg-gray-100">
+                {/* Google Maps Container */}
+                <div ref={mapRef} className="w-full h-full" />
 
-                {/* Center marker */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                    <div className="w-3 h-3 bg-white rounded-full" />
+                {/* Loading State */}
+                {!mapLoaded && !mapError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-green-100 via-blue-50 to-green-50">
+                    <div className="text-center">
+                      <svg className="animate-spin w-10 h-10 mx-auto mb-3 text-green-500" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <p className="text-gray-600 font-medium">Loading map...</p>
+                    </div>
                   </div>
-                </div>
+                )}
 
-                {/* Driver markers */}
-                <div className="absolute top-1/4 left-1/3 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-xs shadow">
-                  <span>1</span>
-                </div>
-                <div className="absolute top-2/3 right-1/4 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-xs shadow">
-                  <span>2</span>
-                </div>
-                <div className="absolute bottom-1/4 left-1/4 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center text-white text-xs shadow">
-                  <span>3</span>
-                </div>
+                {/* Error State */}
+                {mapError && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+                    <div className="text-center p-4">
+                      <svg className="w-12 h-12 mx-auto mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <p className="text-red-600 font-semibold mb-1">Map Error</p>
+                      <p className="text-red-500 text-sm">{mapError}</p>
+                    </div>
+                  </div>
+                )}
 
-                {/* Attribution */}
-                <div className="absolute bottom-2 right-2 bg-white/90 px-2 py-1 rounded text-xs text-gray-600">
+                {/* GlideWay Attribution */}
+                <div className="absolute bottom-2 right-2 bg-white/95 px-2 py-1 rounded text-xs text-gray-600 shadow-sm z-10">
                   GlideWay Maps
                 </div>
               </div>

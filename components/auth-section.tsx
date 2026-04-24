@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 type AuthMode = "login" | "register"
 type RegistrationStep = 1 | 2 | 3 | 4 | 5
@@ -406,7 +407,7 @@ export function AuthSection() {
                       className="space-y-6"
                     >
                       <div className="text-center mb-6">
-                        <div className="text-2xl font-bold tracking-tight mb-4"><span className="text-white">GLIDE</span><span className="text-lime-400">WAY</span></div>
+                        <GlidewayLogo className="w-16 h-16 mx-auto mb-4" />
                         <h3 className="text-xl font-semibold text-white">Sign In to GlideWay</h3>
                         <p className="text-gray-500 text-sm">Enter your credentials to continue</p>
                       </div>

@@ -109,10 +109,14 @@ export default function RideLiveTripPage({ params }: { params: { rideId: string 
           <GoogleMapLive
             pickup={pickupCoords}
             dropoff={dropoffCoords}
-            lat={location.lat}
-            lng={location.lng}
-            heading={location.heading}
-            speedKph={location.speedKph}
+            driver={location.lat && location.lng ? {
+              lat: location.lat,
+              lng: location.lng,
+              heading: location.heading,
+              speedKph: location.speedKph
+            } : undefined}
+            showRoute={true}
+            height={350}
           />
         </div>
 

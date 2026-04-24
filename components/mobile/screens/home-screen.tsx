@@ -1,14 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { Search, MapPin, Calendar, Users, MapPinIcon, Clock, Zap, Star } from "lucide-react"
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyAc7vlAT_grULZzlCdRB_LfdANiOt9mDP4"
 
 const RIDE_TYPES = [
-  { id: "economy", name: "Economy", icon: "🚗", multiplier: 1.0, time: "3 min", seats: 4 },
-  { id: "comfort", name: "Comfort", icon: "🚙", multiplier: 1.5, time: "5 min", seats: 4 },
-  { id: "xl", name: "XL", icon: "🚐", multiplier: 2.0, time: "7 min", seats: 6 },
-  { id: "premium", name: "Premium", icon: "✨", multiplier: 2.5, time: "4 min", seats: 4 },
+  { id: "economy", name: "Economy", icon: "🚗", multiplier: 1.0, time: "3 min", seats: 4, color: "bg-blue-500" },
+  { id: "comfort", name: "Comfort", icon: "🚙", multiplier: 1.5, time: "5 min", seats: 4, color: "bg-purple-500" },
+  { id: "xl", name: "XL", icon: "🚐", multiplier: 2.0, time: "7 min", seats: 6, color: "bg-pink-500" },
+  { id: "premium", name: "Premium", icon: "✨", multiplier: 2.5, time: "4 min", seats: 4, color: "bg-yellow-500" },
 ]
 
 const SAVED_PLACES = [
@@ -59,6 +60,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   const [driverNote, setDriverNote] = useState("")
   const [orderForOther, setOrderForOther] = useState(false)
   const [otherPersonPhone, setOtherPersonPhone] = useState("")
+  const [greeting, setGreeting] = useState("Good Morning")
   
   // Autocomplete state
   const [pickupSuggestions, setPickupSuggestions] = useState<PlaceSuggestion[]>([])
@@ -74,30 +76,13 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Load Google Maps
+  // Set greeting based on time of day
   useEffect(() => {
-    const loadMaps = async () => {
-      if (window.google?.maps) {
-        initMap()
-        return
-      }
-
-      const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`
-      script.async = true
-      script.onload = () => initMap()
-      document.head.appendChild(script)
-    }
-
-    const initMap = () => {
-      if (!mapRef.current || !window.google?.maps) return
-
-      const map = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 38.8339, lng: -104.8214 },
-        zoom: 14,
-        disableDefaultUI: true,
-        zoomControl: false,
-        styles: [
+    const hour = new Date().getHours()
+    if (hour < 12) setGreeting("Happy Friday")
+    else if (hour < 17) setGreeting("Good Afternoon")
+    else setGreeting("Good Evening")
+  }, [])
           { featureType: "poi", stylers: [{ visibility: "off" }] },
           { featureType: "transit", stylers: [{ visibility: "off" }] },
         ],

@@ -1,48 +1,29 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { Navigation, MapPin, Car, Phone, MessageSquare, Shield, Clock, Route, Locate, RefreshCw } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-
-interface Location {
-  lat: number;
-  lng: number;
-  accuracy?: number;
-  heading?: number;
-  speed?: number;
-  timestamp?: number;
-}
+import { MapPin, Phone, AlertTriangle, Star, X } from 'lucide-react';
 
 interface LiveGPSTrackerProps {
-  rideId?: string;
-  pickupAddress?: string;
-  dropoffAddress?: string;
-  driverName?: string;
-  driverPhone?: string;
-  vehicleInfo?: string;
-  estimatedArrival?: string;
-  onBack?: () => void;
+  onClose?: () => void;
 }
 
-export function LiveGPSTracker({
-  rideId = 'GW-10234',
-  pickupAddress = 'Downtown LA',
-  dropoffAddress = 'LAX Airport',
-  driverName = 'John D.',
-  driverPhone = '+1 (555) 123-4567',
-  vehicleInfo = 'Black Honda Civic - GW-5239K',
-  estimatedArrival = '12 min',
-  onBack
-}: LiveGPSTrackerProps) {
+export function LiveGPSTracker({ onClose }: LiveGPSTrackerProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<any>(null);
   const userMarker = useRef<any>(null);
   const driverMarker = useRef<any>(null);
   const directionsRenderer = useRef<any>(null);
   const locationWatchId = useRef<number | null>(null);
+  
   const [isClient, setIsClient] = useState(false);
   const [mapsReady, setMapsReady] = useState(false);
+  const [userLocation, setUserLocation] = useState({ lat: 34.0522, lng: -118.2437 });
+  const [driverLocation, setDriverLocation] = useState({ lat: 34.0730, lng: -118.2465 });
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+  // Check if Google Maps is ready
   useEffect(() => {
     setIsClient(true);
     if (typeof window !== 'undefined' && window.google?.maps) {
@@ -50,22 +31,22 @@ export function LiveGPSTracker({
     }
   }, []);
 
-  if (typeof window === 'undefined' || !window.google?.maps) {
-      setMapLoaded(true);
+  // Load Google Maps script and initialize map
+  useEffect(() => {
+    if (!isClient || !mapRef.current || !apiKey) return;
+
+    // Check if Google Maps is already loaded
+    if (typeof window !== 'undefined' && window.google?.maps) {
+      initMap();
       return;
     }
 
-    if (!apiKey) {
-      console.log('[v0] No Google Maps API key found, using fallback map');
-      setMapLoaded(true);
-      return;
-    }
-
+    // Load Google Maps script
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,directions`;
     script.async = true;
     script.defer = true;
-    script.onload = () => setMapLoaded(true);
+    script.onload = initMap;
     document.head.appendChild(script);
 
     return () => {
@@ -73,311 +54,208 @@ export function LiveGPSTracker({
         document.head.removeChild(script);
       }
     };
-  }, []);
+  }, [isClient, apiKey]);
 
-  // Get user's real GPS location
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setGpsStatus('error');
-      return;
-    }
+  // Initialize the map
+  const initMap = () => {
+    if (!mapRef.current || !window.google?.maps) return;
 
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
+    mapInstance.current = new window.google.maps.Map(mapRef.current, {
+      zoom: 15,
+      center: { lat: userLocation.lat, lng: userLocation.lng },
+      mapTypeId: 'roadmap',
+      styles: [
+        { elementType: 'geometry', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.stroke', stylers: [{ color: '#242f3e' }] },
+        { elementType: 'labels.text.fill', stylers: [{ color: '#746855' }] },
+      ],
+    });
 
-    const successHandler = (position: GeolocationPosition) => {
-      const newLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        heading: position.coords.heading || 0,
-        speed: position.coords.speed || 0,
-        timestamp: position.timestamp
-      };
-      setUserLocation(newLocation);
-      setGpsStatus('locked');
-    };
+    directionsRenderer.current = new window.google.maps.DirectionsRenderer({
+      map: mapInstance.current,
+      suppressMarkers: true,
+    });
 
-    const errorHandler = (error: GeolocationPositionError) => {
-      console.log('[v0] GPS error:', error.message);
-      setGpsStatus('error');
-      // Use default LA location as fallback
-      setUserLocation({ lat: 34.0522, lng: -118.2437 });
-    };
+    // Add user marker (pickup)
+    userMarker.current = new window.google.maps.Marker({
+      position: userLocation,
+      map: mapInstance.current,
+      title: 'Pickup Location',
+      icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png',
+    });
 
-    // Start watching position for real-time updates
-    const id = navigator.geolocation.watchPosition(successHandler, errorHandler, options);
-    setWatchId(id);
+    // Add driver marker
+    driverMarker.current = new window.google.maps.Marker({
+      position: driverLocation,
+      map: mapInstance.current,
+      title: 'Driver Location',
+      icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png',
+    });
 
-    return () => {
-      if (id) {
-        navigator.geolocation.clearWatch(id);
-      }
-    };
-  }, []);
+    setMapLoaded(true);
+    drawRoute();
+  };
 
-  // Simulate driver movement toward user
-  useEffect(() => {
-    if (!userLocation) return;
+  // Draw route between user and driver
+  const drawRoute = () => {
+    if (!directionsRenderer.current || !window.google?.maps) return;
 
-    const interval = setInterval(() => {
-      setDriverLocation(prev => {
-        const latDiff = userLocation.lat - prev.lat;
-        const lngDiff = userLocation.lng - prev.lng;
-        const step = 0.001; // Movement speed
-        
-        return {
-          lat: prev.lat + Math.sign(latDiff) * Math.min(Math.abs(latDiff), step),
-          lng: prev.lng + Math.sign(lngDiff) * Math.min(Math.abs(lngDiff), step)
-        };
-      });
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, [userLocation]);
-
-  // Initialize and update map
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current || !userLocation) return;
-
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-    if (!apiKey || !window.google?.maps) {
-      // Fallback: Use iframe with OpenStreetMap
-      return;
-    }
-
-    // Initialize Google Map
-    if (!mapInstance.current) {
-      mapInstance.current = new window.google.maps.Map(mapRef.current, {
-        center: { lat: userLocation.lat, lng: userLocation.lng },
-        zoom: 15,
-        disableDefaultUI: true,
-        zoomControl: true,
-        styles: [
-          { elementType: 'geometry', stylers: [{ color: '#1a1a1a' }] },
-          { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a1a' }] },
-          { elementType: 'labels.text.fill', stylers: [{ color: '#757575' }] },
-          { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#38414e' }] },
-          { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#4b6741' }] },
-          { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#17263c' }] },
-        ],
-      });
-
-      directionsRenderer.current = new window.google.maps.DirectionsRenderer({
-        map: mapInstance.current,
-        suppressMarkers: true,
-        polylineOptions: { strokeColor: '#22c55e', strokeWeight: 4 },
-      });
-    }
-
-    // Update user marker
-    if (userMarker.current) {
-      userMarker.current.setPosition({ lat: userLocation.lat, lng: userLocation.lng });
-    } else {
-      userMarker.current = new window.google.maps.Marker({
-        position: { lat: userLocation.lat, lng: userLocation.lng },
-        map: mapInstance.current,
-        title: 'Your Location',
-        icon: {
-          path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: '#22c55e',
-          fillOpacity: 1,
-          strokeColor: '#fff',
-          strokeWeight: 3,
-        },
-      });
-    }
-
-    // Update driver marker
-    if (driverMarker.current) {
-      driverMarker.current.setPosition({ lat: driverLocation.lat, lng: driverLocation.lng });
-    } else {
-      driverMarker.current = new window.google.maps.Marker({
-        position: { lat: driverLocation.lat, lng: driverLocation.lng },
-        map: mapInstance.current,
-        title: 'Driver',
-        icon: {
-          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
-            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
-              <circle cx="20" cy="20" r="18" fill="#3b82f6" stroke="#fff" stroke-width="3"/>
-              <path d="M20 10 L28 25 L20 22 L12 25 Z" fill="#fff"/>
-            </svg>
-          `),
-          scaledSize: new window.google.maps.Size(40, 40),
-          anchor: new window.google.maps.Point(20, 20),
-        },
-      });
-    }
-
-    // Draw route between driver and user
     const directionsService = new window.google.maps.DirectionsService();
+
     directionsService.route(
       {
-        origin: { lat: driverLocation.lat, lng: driverLocation.lng },
-        destination: { lat: userLocation.lat, lng: userLocation.lng },
+        origin: userLocation,
+        destination: driverLocation,
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result: any, status: any) => {
-        if (status === 'OK' && directionsRenderer.current) {
+        if (status === window.google.maps.DirectionsStatus.OK) {
           directionsRenderer.current.setDirections(result);
-          
-          // Update ETA and distance
-          const route = result.routes[0]?.legs[0];
-          if (route) {
-            setEta(route.duration?.text || estimatedArrival);
-            setDistance(route.distance?.text || '5.2 mi');
-          }
         }
       }
     );
+  };
 
-    // Fit bounds
-    const bounds = new window.google.maps.LatLngBounds();
-    bounds.extend({ lat: userLocation.lat, lng: userLocation.lng });
-    bounds.extend({ lat: driverLocation.lat, lng: driverLocation.lng });
-    mapInstance.current.fitBounds(bounds, 50);
+  // Simulate real-time GPS tracking
+  useEffect(() => {
+    if (!mapLoaded) return;
 
-  }, [mapLoaded, userLocation, driverLocation, estimatedArrival]);
+    const interval = setInterval(() => {
+      // Simulate driver moving towards pickup
+      setDriverLocation((prev) => ({
+        lat: prev.lat + (userLocation.lat - prev.lat) * 0.01,
+        lng: prev.lng + (userLocation.lng - prev.lng) * 0.01,
+      }));
+    }, 2000);
 
-  const centerOnUser = useCallback(() => {
-    if (mapInstance.current && userLocation) {
-      mapInstance.current.panTo({ lat: userLocation.lat, lng: userLocation.lng });
-      mapInstance.current.setZoom(16);
+    return () => clearInterval(interval);
+  }, [mapLoaded, userLocation]);
+
+  // Update driver marker position
+  useEffect(() => {
+    if (driverMarker.current && mapLoaded) {
+      driverMarker.current.setPosition(driverLocation);
+      if (mapInstance.current) {
+        mapInstance.current.panTo(driverLocation);
+      }
+      drawRoute();
     }
-  }, [userLocation]);
+  }, [driverLocation, mapLoaded]);
 
-  const openInMaps = useCallback(() => {
-    if (userLocation) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${userLocation.lat},${userLocation.lng}`;
-      window.open(url, '_blank');
+  // Get user's real GPS location if available
+  useEffect(() => {
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+          
+          if (userMarker.current) {
+            userMarker.current.setPosition({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            });
+          }
+        },
+        (error) => console.log('[v0] Geolocation error:', error)
+      );
     }
-  }, [userLocation]);
+  }, []);
+
+  // Calculate distance
+  const calculateDistance = () => {
+    const R = 3959; // Earth's radius in miles
+    const dLat = ((driverLocation.lat - userLocation.lat) * Math.PI) / 180;
+    const dLng = ((driverLocation.lng - userLocation.lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((userLocation.lat * Math.PI) / 180) *
+        Math.cos((driverLocation.lat * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (R * c).toFixed(1);
+  };
+
+  const distance = calculateDistance();
+  const eta = Math.ceil(parseFloat(distance) * 2);
+
+  if (!isClient || !apiKey) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-900">
+        <div className="text-center">
+          <AlertTriangle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <p className="text-white font-semibold">Google Maps Not Configured</p>
+          <p className="text-gray-400 text-sm mt-2">Please add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="fixed inset-0 bg-slate-900 z-50 flex flex-col">
       {/* Header */}
-      <div className="bg-slate-900/95 backdrop-blur border-b border-slate-800 p-4">
-        <div className="flex items-center justify-between">
-          {onBack && (
-            <Button variant="ghost" size="sm" className="text-white" onClick={onBack}>
-              Back
-            </Button>
-          )}
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${gpsStatus === 'locked' ? 'bg-emerald-400 animate-pulse' : gpsStatus === 'acquiring' ? 'bg-yellow-400 animate-pulse' : 'bg-red-400'}`} />
-            <span className="text-sm text-gray-400">
-              {gpsStatus === 'locked' ? 'GPS Active' : gpsStatus === 'acquiring' ? 'Acquiring GPS...' : 'GPS Error'}
-            </span>
-          </div>
-          <Button variant="ghost" size="icon" className="text-white" onClick={centerOnUser}>
-            <Locate className="w-5 h-5" />
-          </Button>
-        </div>
+      <div className="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-white">Live Trip Tracking</h1>
+        <Button variant="ghost" size="icon" className="text-white" onClick={onClose}>
+          <X className="w-6 h-6" />
+        </Button>
       </div>
 
-      {/* Map Container */}
-      <div className="relative h-[50vh]">
-        {!isClient || !process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || !mapsReady ? (
-          // Fallback map using iframe
-          <iframe
-            src={`https://www.openstreetmap.org/export/embed.html?bbox=${(userLocation?.lng || -118.2437) - 0.05}%2C${(userLocation?.lat || 34.0522) - 0.03}%2C${(userLocation?.lng || -118.2437) + 0.05}%2C${(userLocation?.lat || 34.0522) + 0.03}&layer=mapnik&marker=${userLocation?.lat || 34.0522}%2C${userLocation?.lng || -118.2437}`}
-            className="w-full h-full border-0"
-            style={{ filter: 'invert(90%) hue-rotate(180deg)' }}
-          />
-        ) : (
-          <div ref={mapRef} className="w-full h-full" />
-        )}
-        
-        {/* Map overlay controls */}
-        <div className="absolute bottom-4 right-4 flex flex-col gap-2">
-          <Button size="icon" className="bg-emerald-600 hover:bg-emerald-500 shadow-lg" onClick={openInMaps}>
-            <Navigation className="w-5 h-5" />
-          </Button>
-          <Button size="icon" variant="secondary" className="shadow-lg" onClick={centerOnUser}>
-            <Locate className="w-5 h-5" />
-          </Button>
-        </div>
-      </div>
+      {/* Map */}
+      <div ref={mapRef} className="flex-1 w-full" />
 
-      {/* Trip Info Card */}
-      <div className="bg-slate-800 rounded-t-3xl -mt-6 relative z-10 p-6 space-y-4">
-        {/* Driver arriving info */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-emerald-400 font-semibold text-lg">Driver is on the way</p>
-            <p className="text-gray-400 text-sm">Arriving in {eta}</p>
+      {/* Trip Info */}
+      <div className="bg-slate-800 border-t border-slate-700 p-4 space-y-4">
+        {/* Driver Info */}
+        <div className="bg-slate-700/50 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold">
+              JD
+            </div>
+            <div>
+              <p className="text-white font-semibold">John Driver</p>
+              <p className="text-sm text-gray-400 flex items-center gap-1">
+                <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                4.95 rating
+              </p>
+            </div>
           </div>
           <div className="text-right">
-            <p className="text-white font-bold text-2xl">{eta}</p>
-            <p className="text-gray-500 text-xs">{distance} away</p>
+            <p className="text-emerald-400 font-semibold">{distance} mi away</p>
+            <p className="text-sm text-gray-400">{eta} min away</p>
           </div>
         </div>
 
-        {/* Driver info */}
-        <div className="flex items-center gap-4 p-4 bg-slate-700/50 rounded-xl">
-          <div className="w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold text-xl">
-            {driverName.charAt(0)}
+        {/* Route Info */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{distance}</p>
+            <p className="text-xs text-gray-400 mt-1">Distance</p>
           </div>
-          <div className="flex-1">
-            <p className="text-white font-semibold">{driverName}</p>
-            <p className="text-gray-400 text-sm">{vehicleInfo}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <span className="text-yellow-400 text-sm">★★★★★</span>
-              <span className="text-gray-400 text-xs">4.95</span>
-            </div>
+          <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{eta}</p>
+            <p className="text-xs text-gray-400 mt-1">Minutes</p>
           </div>
-          <div className="flex gap-2">
-            <Button size="icon" variant="outline" className="border-slate-600 text-white">
-              <Phone className="w-4 h-4" />
-            </Button>
-            <Button size="icon" variant="outline" className="border-slate-600 text-white">
-              <MessageSquare className="w-4 h-4" />
-            </Button>
+          <div className="bg-slate-700/50 rounded-lg p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">35</p>
+            <p className="text-xs text-gray-400 mt-1">Avg Speed</p>
           </div>
         </div>
 
-        {/* Route info */}
-        <div className="space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-3 h-3 rounded-full bg-emerald-500 mt-1.5" />
-            <div>
-              <p className="text-gray-400 text-xs">PICKUP</p>
-              <p className="text-white font-medium">{pickupAddress}</p>
-            </div>
-          </div>
-          <div className="ml-1.5 border-l-2 border-dashed border-slate-600 h-4" />
-          <div className="flex items-start gap-3">
-            <div className="w-3 h-3 rounded-full bg-red-500 mt-1.5" />
-            <div>
-              <p className="text-gray-400 text-xs">DROPOFF</p>
-              <p className="text-white font-medium">{dropoffAddress}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="grid grid-cols-3 gap-3 pt-2">
-          <Button variant="outline" className="border-slate-600 text-white flex flex-col h-auto py-3">
-            <Route className="w-5 h-5 mb-1" />
-            <span className="text-xs">Share Trip</span>
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white">
+            <Phone className="w-4 h-4 mr-2" />
+            Call Driver
           </Button>
-          <Button variant="outline" className="border-slate-600 text-white flex flex-col h-auto py-3">
-            <Shield className="w-5 h-5 mb-1" />
-            <span className="text-xs">Safety</span>
-          </Button>
-          <Button variant="outline" className="border-red-500/50 text-red-400 flex flex-col h-auto py-3">
-            <Clock className="w-5 h-5 mb-1" />
-            <span className="text-xs">Cancel</span>
+          <Button variant="outline" className="flex-1 text-white border-gray-600 hover:bg-slate-700">
+            <MapPin className="w-4 h-4 mr-2" />
+            Share Location
           </Button>
         </div>
-
-        {/* Ride ID */}
-        <p className="text-center text-gray-500 text-xs">Ride ID: {rideId}</p>
       </div>
     </div>
   );

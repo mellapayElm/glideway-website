@@ -261,7 +261,8 @@ export default function GoogleMapLive({
     }
   }, [pickup, dropoff, driver, isLoading]);
 
-  return (
+  if (error) {
+    return (
       <div 
         className={`relative bg-slate-900 rounded-lg flex items-center justify-center ${className}`}
         style={{ height }}

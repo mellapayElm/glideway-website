@@ -12,54 +12,53 @@ interface LogoProps {
   className?: string
 }
 
-// The official GlideWay icon SVG - circle with motion lines and road path
+// The official GlideWay icon SVG - bright green C-shape with motion lines and white road
 function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 140 140" className="flex-shrink-0">
-      <defs>
-        <linearGradient id={`glideGrad${id}`} x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#22c55e" />
-          <stop offset="50%" stopColor="#7CFF3A" />
-          <stop offset="100%" stopColor="#7CFF3A" />
-        </linearGradient>
-      </defs>
-
-      {/* Main circular arc - green gradient from top to right */}
+    <svg width={size} height={size} viewBox="0 0 160 160" className="flex-shrink-0">
+      {/* Bright lime green curved C-shape emblem */}
       <path
-        d="M 35 50 A 45 45 0 0 1 105 105"
-        stroke={`url(#glideGrad${id})`}
-        strokeWidth="8"
-        fill="none"
-        strokeLinecap="round"
+        d="M 50 25 A 55 55 0 0 1 115 90 L 105 100 A 45 45 0 0 0 60 35 Z"
+        fill="#7CFF3A"
       />
 
-      {/* Motion speed lines - left side, decreasing */}
-      <line x1="8" y1="55" x2="32" y2="55" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" />
-      <line x1="12" y1="75" x2="30" y2="75" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" opacity="0.75" />
-      <line x1="16" y1="40" x2="28" y2="40" stroke="#7CFF3A" strokeWidth="3" strokeLinecap="round" opacity="0.5" />
+      {/* Motion speed lines - horizontal on left */}
+      <line x1="12" y1="55" x2="48" y2="55" stroke="#7CFF3A" strokeWidth="6" strokeLinecap="round" />
+      <line x1="18" y1="80" x2="48" y2="80" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" opacity="0.8" />
+      <line x1="22" y1="105" x2="48" y2="105" stroke="#7CFF3A" strokeWidth="4" strokeLinecap="round" opacity="0.6" />
 
-      {/* White curved road - from lower left to upper right inside circle */}
+      {/* White curved road/path - flows from inside emblem to right */}
       <path
-        d="M 45 95 Q 55 75 70 55 Q 85 35 105 30"
+        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
         stroke="#ffffff"
-        strokeWidth="12"
+        strokeWidth="16"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {/* Road center dashed line - green */}
+      {/* Road center dashed line - bright green */}
       <path
-        d="M 45 95 Q 55 75 70 55 Q 85 35 105 30"
+        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
         stroke="#7CFF3A"
-        strokeWidth="2.5"
+        strokeWidth="3"
         fill="none"
         strokeLinecap="round"
-        strokeDasharray="5,5"
+        strokeDasharray="6,6"
       />
+    </svg>
+  )
+}
 
-      {/* Destination marker - top right */}
-      <circle cx="106" cy="28" r="6" fill="#7CFF3A" />
+      {/* Road center dashed line - bright green */}
+      <path
+        d="M 55 85 Q 75 70 100 55 Q 115 45 130 40"
+        stroke="#7CFF3A"
+        strokeWidth="3"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray="6,6"
+      />
     </svg>
   )
 }

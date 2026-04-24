@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapPin, Car, Navigation, Loader2 } from "lucide-react";
+import { loadGoogleMaps } from "@/lib/google-maps-loader";
 
 type Props = {
   pickup?: { lat: number; lng: number };
@@ -15,53 +16,6 @@ type Props = {
 
 // Default to Los Angeles if no location provided
 const DEFAULT_CENTER = { lat: 34.0522, lng: -118.2437 };
-
-// Global script loading state
-let googleMapsPromise: Promise<void> | null = null;
-
-function loadGoogleMaps(apiKey: string): Promise<void> {
-  if (googleMapsPromise) return googleMapsPromise;
-  
-  if (typeof window !== "undefined" && window.google?.maps) {
-    return Promise.resolve();
-  }
-
-  googleMapsPromise = new Promise((resolve, reject) => {
-    // Check if script already exists to prevent duplicates
-    const existingScript = document.querySelector(
-      `script[src*="maps.googleapis.com/maps/api/js"][src*="key=${apiKey}"]`
-    );
-    
-    if (existingScript) {
-      // Wait for existing script to load
-      const checkGoogle = setInterval(() => {
-        if (window.google?.maps) {
-          clearInterval(checkGoogle);
-          resolve();
-        }
-      }, 100);
-      return;
-    }
-
-    const script = document.createElement("script");
-    // Note: "directions" library was removed - it's not a valid library in Google Maps API
-    // Use only valid libraries: places, geometry, marker, routes
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry,marker&v=weekly`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      console.log("[GlideWay] Google Maps API loaded successfully");
-      resolve();
-    };
-    script.onerror = () => {
-      console.error("[GlideWay] Failed to load Google Maps - check API key activation in Google Cloud Console");
-      reject(new Error("Failed to load Google Maps script - Ensure Maps JavaScript API is enabled"));
-    };
-    document.head.appendChild(script);
-  });
-
-  return googleMapsPromise;
-}
 
 export default function GoogleMapLive({ 
   pickup, 
@@ -129,16 +83,8 @@ export default function GoogleMapLive({
     async function initMap() {
       if (!mapRef.current) return;
 
-      const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-      
-      if (!apiKey) {
-        setError("Google Maps API key is required. Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to your environment variables.");
-        setIsLoading(false);
-        return;
-      }
-
       try {
-        await loadGoogleMaps(apiKey);
+        await loadGoogleMaps();
         
         if (!isMounted || !mapRef.current) return;
 

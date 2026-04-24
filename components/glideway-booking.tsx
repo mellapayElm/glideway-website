@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { GlideWayMap } from "./glideway-map"
 
 interface RideType {
   id: string
@@ -520,31 +521,14 @@ export function GlideWayBooking() {
 
       {/* Right Panel - Map */}
       <div className="flex-1 relative min-h-[400px] lg:min-h-0">
-        <div ref={mapRef} className="w-full h-full" />
-        
-        {!mapLoaded && !mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4" />
-              <p className="text-gray-600">Loading map...</p>
-            </div>
-          </div>
-        )}
-
-        {mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-            <div className="text-center p-8">
-              <p className="text-red-600 font-semibold mb-2">Map Error</p>
-              <p className="text-gray-600 text-sm">{mapError}</p>
-            </div>
-          </div>
-        )}
-
-        {mapPickupMode && (
-          <div className="absolute top-4 left-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-10 animate-pulse">
-            Click on map to set pickup location
-          </div>
-        )}
+        <GlideWayMap
+          onPickupSelect={(lat, lng) => {
+            console.log("[v0] Pickup selected:", { lat, lng })
+          }}
+          onDropoffSelect={(lat, lng) => {
+            console.log("[v0] Dropoff selected:", { lat, lng })
+          }}
+        />
       </div>
     </div>
   )

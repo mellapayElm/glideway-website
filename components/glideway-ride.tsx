@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 
 // Ride type options with colors
 const RIDE_TYPES = [
@@ -9,6 +9,13 @@ const RIDE_TYPES = [
   { id: "xl", name: "XL", icon: "🚐", price: 2.0, color: "#8b5cf6", time: "7 min" },
   { id: "premium", name: "Premium", icon: "✨", price: 2.5, color: "#f59e0b", time: "4 min" },
 ]
+
+interface PlaceSuggestion {
+  placeId: string
+  description: string
+  mainText: string
+  secondaryText: string
+}
 
 export function GlideWayRide() {
   const [pickup, setPickup] = useState("")
@@ -26,6 +33,20 @@ export function GlideWayRide() {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<google.maps.Map | null>(null)
 
+  // Autocomplete state
+  const [pickupSuggestions, setPickupSuggestions] = useState<PlaceSuggestion[]>([])
+  const [dropoffSuggestions, setDropoffSuggestions] = useState<PlaceSuggestion[]>([])
+  const [showPickupSuggestions, setShowPickupSuggestions] = useState(false)
+  const [showDropoffSuggestions, setShowDropoffSuggestions] = useState(false)
+  const [pickupLoading, setPickupLoading] = useState(false)
+  const [dropoffLoading, setDropoffLoading] = useState(false)
+  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null)
+  const pickupDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const dropoffDebounceRef = useRef<NodeJS.Timeout | null>(null)
+  const pickupRef = useRef<HTMLDivElement>(null)
+  const dropoffRef = useRef<HTMLDivElement>(null)
+
   // Initialize Google Maps
   useEffect(() => {
     const initMap = async () => {
@@ -41,7 +62,7 @@ export function GlideWayRide() {
           }
 
           const script = document.createElement("script")
-          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&v=weekly`
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly`
           script.async = true
           script.defer = true
           
@@ -69,6 +90,12 @@ export function GlideWayRide() {
         mapInstanceRef.current = map
         setMapLoaded(true)
 
+        // Initialize Places AutocompleteService
+        if (window.google.maps.places) {
+          autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService()
+          sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken()
+        }
+
         // Try to get user location
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition(
@@ -89,6 +116,90 @@ export function GlideWayRide() {
 
     initMap()
   }, [])
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (pickupRef.current && !pickupRef.current.contains(e.target as Node)) {
+        setShowPickupSuggestions(false)
+      }
+      if (dropoffRef.current && !dropoffRef.current.contains(e.target as Node)) {
+        setShowDropoffSuggestions(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  // Fetch place suggestions
+  const fetchSuggestions = useCallback((
+    query: string,
+    setSuggestions: (s: PlaceSuggestion[]) => void,
+    setLoading: (b: boolean) => void
+  ) => {
+    if (!autocompleteServiceRef.current || query.length < 2) {
+      setSuggestions([])
+      return
+    }
+
+    setLoading(true)
+    autocompleteServiceRef.current.getPlacePredictions(
+      {
+        input: query,
+        sessionToken: sessionTokenRef.current ?? undefined,
+        componentRestrictions: { country: "us" },
+      },
+      (predictions, status) => {
+        setLoading(false)
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+          setSuggestions(
+            predictions.map((p) => ({
+              placeId: p.place_id,
+              description: p.description,
+              mainText: p.structured_formatting.main_text,
+              secondaryText: p.structured_formatting.secondary_text,
+            }))
+          )
+        } else {
+          setSuggestions([])
+        }
+      }
+    )
+  }, [])
+
+  // Debounced pickup input handler
+  const handlePickupChange = (value: string) => {
+    setPickup(value)
+    setShowPickupSuggestions(true)
+    if (pickupDebounceRef.current) clearTimeout(pickupDebounceRef.current)
+    pickupDebounceRef.current = setTimeout(() => {
+      fetchSuggestions(value, setPickupSuggestions, setPickupLoading)
+    }, 300)
+  }
+
+  // Debounced dropoff input handler
+  const handleDropoffChange = (value: string) => {
+    setDropoff(value)
+    setShowDropoffSuggestions(true)
+    if (dropoffDebounceRef.current) clearTimeout(dropoffDebounceRef.current)
+    dropoffDebounceRef.current = setTimeout(() => {
+      fetchSuggestions(value, setDropoffSuggestions, setDropoffLoading)
+    }, 300)
+  }
+
+  // Select a suggestion
+  const selectSuggestion = (
+    suggestion: PlaceSuggestion,
+    setValue: (s: string) => void,
+    setShow: (b: boolean) => void
+  ) => {
+    setValue(suggestion.description)
+    setShow(false)
+    // Refresh session token after selection
+    if (window.google?.maps?.places) {
+      sessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken()
+    }
+  }
 
   // Calculate fare estimate in real-time
   useEffect(() => {
@@ -174,23 +285,65 @@ export function GlideWayRide() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Book Your Ride</h2>
             
             {/* Pickup Location */}
-            <div className="mb-4">
+            <div className="mb-4" ref={pickupRef}>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Pickup Location
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-xl">●</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 bg-green-500 rounded-full z-10" />
                 <input
                   type="text"
                   value={pickup}
-                  onChange={(e) => setPickup(e.target.value)}
+                  onChange={(e) => handlePickupChange(e.target.value)}
+                  onFocus={() => pickup.length >= 2 && setShowPickupSuggestions(true)}
                   placeholder="Enter pickup address"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all text-gray-900 placeholder-gray-400"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all text-gray-900 placeholder-gray-400"
                 />
+                {pickupLoading && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="animate-spin w-4 h-4 text-green-500" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                )}
+                {/* Pickup suggestions dropdown */}
+                {showPickupSuggestions && pickupSuggestions.length > 0 && (
+                  <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                    {pickupSuggestions.map((s) => (
+                      <li
+                        key={s.placeId}
+                        onMouseDown={() => selectSuggestion(s, setPickup, setShowPickupSuggestions)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                      >
+                        <svg className="w-5 h-5 mt-0.5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{s.mainText}</p>
+                          <p className="text-gray-500 text-xs truncate">{s.secondaryText}</p>
+                        </div>
+                      </li>
+                    ))}
+                    <li className="px-4 py-2 bg-gray-50 flex items-center justify-end gap-1">
+                      <span className="text-xs text-gray-400">powered by</span>
+                      <svg viewBox="0 0 48 16" className="h-3 w-auto opacity-50">
+                        <text x="0" y="13" fontSize="12" fontWeight="bold" fill="#4285F4">G</text>
+                        <text x="9" y="13" fontSize="12" fill="#EA4335">o</text>
+                        <text x="16" y="13" fontSize="12" fill="#FBBC04">o</text>
+                        <text x="23" y="13" fontSize="12" fill="#4285F4">g</text>
+                        <text x="30" y="13" fontSize="12" fill="#34A853">l</text>
+                        <text x="35" y="13" fontSize="12" fill="#EA4335">e</text>
+                      </svg>
+                    </li>
+                  </ul>
+                )}
               </div>
               <button
                 onClick={getCurrentLocation}
-                className="mt-2 flex items-center gap-2 text-green-600 hover:text-green-700 text-sm font-medium"
+                className="mt-2 flex items-center gap-2 text-green-600 hover:text-green-700 text-sm font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -201,19 +354,61 @@ export function GlideWayRide() {
             </div>
 
             {/* Dropoff Location */}
-            <div className="mb-6">
+            <div className="mb-6" ref={dropoffRef}>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Dropoff Location
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-red-500 text-xl">■</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 bg-red-500 rounded-sm z-10" />
                 <input
                   type="text"
                   value={dropoff}
-                  onChange={(e) => setDropoff(e.target.value)}
+                  onChange={(e) => handleDropoffChange(e.target.value)}
+                  onFocus={() => dropoff.length >= 2 && setShowDropoffSuggestions(true)}
                   placeholder="Enter destination address"
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all text-gray-900 placeholder-gray-400"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition-all text-gray-900 placeholder-gray-400"
                 />
+                {dropoffLoading && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <svg className="animate-spin w-4 h-4 text-green-500" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  </span>
+                )}
+                {/* Dropoff suggestions dropdown */}
+                {showDropoffSuggestions && dropoffSuggestions.length > 0 && (
+                  <ul className="absolute z-50 left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+                    {dropoffSuggestions.map((s) => (
+                      <li
+                        key={s.placeId}
+                        onMouseDown={() => selectSuggestion(s, setDropoff, setShowDropoffSuggestions)}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-green-50 cursor-pointer border-b border-gray-50 last:border-0 transition-colors"
+                      >
+                        <svg className="w-5 h-5 mt-0.5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-gray-900 text-sm truncate">{s.mainText}</p>
+                          <p className="text-gray-500 text-xs truncate">{s.secondaryText}</p>
+                        </div>
+                      </li>
+                    ))}
+                    <li className="px-4 py-2 bg-gray-50 flex items-center justify-end gap-1">
+                      <span className="text-xs text-gray-400">powered by</span>
+                      <svg viewBox="0 0 48 16" className="h-3 w-auto opacity-50">
+                        <text x="0" y="13" fontSize="12" fontWeight="bold" fill="#4285F4">G</text>
+                        <text x="9" y="13" fontSize="12" fill="#EA4335">o</text>
+                        <text x="16" y="13" fontSize="12" fill="#FBBC04">o</text>
+                        <text x="23" y="13" fontSize="12" fill="#4285F4">g</text>
+                        <text x="30" y="13" fontSize="12" fill="#34A853">l</text>
+                        <text x="35" y="13" fontSize="12" fill="#EA4335">e</text>
+                      </svg>
+                    </li>
+                  </ul>
+                )}
               </div>
             </div>
 

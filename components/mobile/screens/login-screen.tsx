@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { ChevronLeft, Mail } from "lucide-react"
-import { GlidewayLogo } from "@/components/glideway-logo"
 
 interface PhoneLoginScreenProps {
   onBack?: () => void
@@ -71,17 +70,10 @@ export function PhoneLoginScreen({ onBack, onContinue }: PhoneLoginScreenProps) 
 
         {!loginMethod ? (
           <>
-            {/* Logo */}
-            <div className="mb-8 flex justify-center">
-              <div className="w-32">
-                <GlidewayLogo variant="icon" size="lg" />
-              </div>
-            </div>
-
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white mb-2">Welcome back</h1>
-              <p className="text-gray-400">Choose how you&apos;d like to sign in</p>
+              <p className="text-gray-400">Choose how you'd like to sign in</p>
             </div>
 
             {/* Phone Option */}

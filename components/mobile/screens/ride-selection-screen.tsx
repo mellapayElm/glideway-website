@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import { ChevronLeft, MapPin, Clock, Users, Star, Shield, DollarSign, Info, Calendar } from "lucide-react"
-import { GlidewayLogo } from "@/components/glideway-logo"
 
 const RIDE_OPTIONS = [
   {
@@ -81,15 +80,19 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
         </div>
       </div>
 
-      {/* Header with Back and Logo */}
+      {/* Header */}
       <div className="bg-gray-900 border-b border-gray-800 px-4 py-4">
         <div className="flex items-center gap-3 mb-4">
-          <button className="w-8 h-8 flex items-center justify-center hover:bg-gray-800 rounded-lg transition-colors" onClick={onBack}>
-            <ChevronLeft className="w-5 h-5 text-white" />
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 text-lime-400 hover:text-lime-300 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <GlidewayLogo variant="icon" size="sm" />
-          <h1 className="flex-1 font-bold text-white">Select Ride</h1>
-        </div>
+          <div>
+            <h1 className="text-white font-bold">Choose a ride</h1>
+            <p className="text-gray-400 text-sm">From 456 Business Ave to Home</p>
+          </div>
         </div>
 
         {/* Trip Info */}

@@ -75,9 +75,9 @@ export default function GoogleMapLive({
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<{
-    pickup?: google.maps.Marker;
-    dropoff?: google.maps.Marker;
-    driver?: google.maps.Marker;
+    pickup?: google.maps.marker.AdvancedMarkerElement;
+    dropoff?: google.maps.marker.AdvancedMarkerElement;
+    driver?: google.maps.marker.AdvancedMarkerElement;
   }>({});
   const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -165,18 +165,6 @@ export default function GoogleMapLive({
         });
 
         mapInstanceRef.current = map;
-
-        const directionsRenderer = new google.maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          polylineOptions: {
-            strokeColor: "#22c55e",
-            strokeWeight: 5,
-            strokeOpacity: 0.8,
-          },
-        });
-        directionsRendererRef.current = directionsRenderer;
-
         setIsLoading(false);
         onMapReady?.(map);
 
@@ -200,55 +188,65 @@ export default function GoogleMapLive({
   // Update markers when locations change
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || isLoading || !window.google?.maps) return;
+    if (!map || isLoading || !window.google?.maps || !window.google.maps.marker) return;
 
-    // Update pickup marker
+    // Create pickup marker
     if (pickup) {
-      if (markersRef.current.pickup) {
-        markersRef.current.pickup.setPosition(pickup);
-      } else {
-        const icon = createPickupIcon();
-        if (icon) {
-          markersRef.current.pickup = new google.maps.Marker({
+      if (!markersRef.current.pickup) {
+        const pickupDiv = document.createElement('div');
+        pickupDiv.innerHTML = '<div class="w-6 h-6 bg-emerald-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center"><div class="w-2 h-2 bg-white rounded-full"></div></div>';
+        try {
+          markersRef.current.pickup = new google.maps.marker.AdvancedMarkerElement({
+            map,
             position: pickup,
-            map,
-            icon,
             title: "Pickup",
+            content: pickupDiv,
           });
+        } catch (e) {
+          console.error("[GlideWay] Error creating pickup marker:", e);
         }
-      }
-    }
-
-    // Update dropoff marker
-    if (dropoff) {
-      if (markersRef.current.dropoff) {
-        markersRef.current.dropoff.setPosition(dropoff);
       } else {
-        const icon = createDropoffIcon();
-        if (icon) {
-          markersRef.current.dropoff = new google.maps.Marker({
-            position: dropoff,
-            map,
-            icon,
-            title: "Dropoff",
-          });
-        }
+        markersRef.current.pickup.position = pickup;
       }
     }
 
-    // Update driver marker
+    // Create dropoff marker
+    if (dropoff) {
+      if (!markersRef.current.dropoff) {
+        const dropoffDiv = document.createElement('div');
+        dropoffDiv.innerHTML = '<div class="w-6 h-6 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center"><div class="w-2 h-2 bg-white rounded-full"></div></div>';
+        try {
+          markersRef.current.dropoff = new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: dropoff,
+            title: "Dropoff",
+            content: dropoffDiv,
+          });
+        } catch (e) {
+          console.error("[GlideWay] Error creating dropoff marker:", e);
+        }
+      } else {
+        markersRef.current.dropoff.position = dropoff;
+      }
+    }
+
+    // Create driver marker
     if (driver) {
-      const icon = createDriverIcon(driver.heading);
-      if (markersRef.current.driver) {
-        markersRef.current.driver.setPosition(driver);
-        if (icon) markersRef.current.driver.setIcon(icon);
-      } else if (icon) {
-        markersRef.current.driver = new google.maps.Marker({
-          position: driver,
-          map,
-          icon,
-          title: "Driver",
-        });
+      if (!markersRef.current.driver) {
+        const driverDiv = document.createElement('div');
+        driverDiv.innerHTML = '<div class="w-5 h-5 bg-emerald-400 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-xs">🚗</div>';
+        try {
+          markersRef.current.driver = new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: driver,
+            title: "Driver",
+            content: driverDiv,
+          });
+        } catch (e) {
+          console.error("[GlideWay] Error creating driver marker:", e);
+        }
+      } else {
+        markersRef.current.driver.position = driver;
       }
     }
 
@@ -261,30 +259,9 @@ export default function GoogleMapLive({
     if (!bounds.isEmpty()) {
       map.fitBounds(bounds, { padding: 60 });
     }
-  }, [pickup, dropoff, driver, isLoading, createPickupIcon, createDropoffIcon, createDriverIcon]);
+  }, [pickup, dropoff, driver, isLoading]);
 
-  // Draw route
-  useEffect(() => {
-    if (!showRoute || !pickup || !dropoff || !directionsRendererRef.current || !window.google?.maps) return;
-
-    const directionsService = new google.maps.DirectionsService();
-    
-    directionsService.route(
-      {
-        origin: pickup,
-        destination: dropoff,
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === google.maps.DirectionsStatus.OK && result) {
-          directionsRendererRef.current?.setDirections(result);
-        }
-      }
-    );
-  }, [pickup, dropoff, showRoute, isLoading]);
-
-  if (error) {
-    return (
+  return (
       <div 
         className={`relative bg-slate-900 rounded-lg flex items-center justify-center ${className}`}
         style={{ height }}

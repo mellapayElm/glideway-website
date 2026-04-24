@@ -16,8 +16,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GlidewayLogo } from "@/components/glideway-logo"
+import { PaymentMethodsPage } from "@/components/payment-methods-page"
 
-type AppView = "home" | "booking" | "tracking" | "history" | "profile" | "support" | "map-details"
+type AppView = "home" | "booking" | "tracking" | "history" | "profile" | "support" | "map-details" | "payment" | "safety" | "notifications" | "settings" | "ride-details"
 type RideType = "economy" | "comfort" | "premium" | "xl"
 
 interface GPSData {
@@ -97,6 +98,7 @@ interface PricingBreakdown {
 }
 
 export default function RiderApp() {
+  const [selectedRideId, setSelectedRideId] = useState<string | null>(null)
   const [currentView, setCurrentView] = useState<AppView>("home")
   const [pickup, setPickup] = useState("")
   const [dropoff, setDropoff] = useState("")
@@ -345,12 +347,10 @@ export default function RiderApp() {
   const menuItems = [
     { icon: <User className="w-5 h-5" />, label: "Profile", action: () => setCurrentView("profile") },
     { icon: <History className="w-5 h-5" />, label: "Ride History", action: () => setCurrentView("history") },
-    { icon: <CreditCard className="w-5 h-5" />, label: "Payment Methods", action: () => {} },
-    { icon: <Gift className="w-5 h-5" />, label: "Promotions", action: () => {} },
-    { icon: <Heart className="w-5 h-5" />, label: "Saved Places", action: () => {} },
-    { icon: <Shield className="w-5 h-5" />, label: "Safety", action: () => {} },
-    { icon: <HelpCircle className="w-5 h-5" />, label: "Support", action: () => setCurrentView("support") },
-    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: () => {} },
+    { icon: <CreditCard className="w-5 h-5" />, label: "Payment Methods", action: () => setCurrentView("payment") },
+    { icon: <Bell className="w-5 h-5" />, label: "Notifications", action: () => setCurrentView("notifications") },
+    { icon: <Shield className="w-5 h-5" />, label: "Safety", action: () => setCurrentView("safety") },
+    { icon: <Settings className="w-5 h-5" />, label: "Settings", action: () => setCurrentView("settings") },
   ]
 
   // GPS Status Component
@@ -1206,12 +1206,16 @@ export default function RiderApp() {
 
       <div className="space-y-3">
         {[
-          { id: "GW-10234", dest: "LAX Airport", date: "Today, 2:30 PM", price: 32.50, status: "completed", driver: "John D." },
-          { id: "GW-10198", dest: "Downtown Office", date: "Yesterday", price: 18.75, status: "completed", driver: "Sarah M." },
-          { id: "GW-10156", dest: "Santa Monica Pier", date: "Dec 18", price: 24.00, status: "completed", driver: "Mike R." },
-          { id: "GW-10102", dest: "Hollywood Bowl", date: "Dec 15", price: 28.50, status: "cancelled", driver: "---" },
+          { id: "GW-10234", dest: "LAX Airport", date: "Today, 2:30 PM", price: 32.50, status: "completed", driver: "John D.", distance: 12.5, duration: 45, pickup: "Downtown LA" },
+          { id: "GW-10198", dest: "Downtown Office", date: "Yesterday", price: 18.75, status: "completed", driver: "Sarah M.", distance: 8.2, duration: 28, pickup: "Midtown" },
+          { id: "GW-10156", dest: "Santa Monica Pier", date: "Dec 18", price: 24.00, status: "completed", driver: "Mike R.", distance: 15.3, duration: 52, pickup: "Beverly Hills" },
+          { id: "GW-10102", dest: "Hollywood Bowl", date: "Dec 15", price: 28.50, status: "cancelled", driver: "---", distance: 0, duration: 0, pickup: "---" },
         ].map((ride) => (
-          <Card key={ride.id} className="bg-slate-800/50 border-slate-700/50">
+          <Card 
+            key={ride.id} 
+            className="bg-slate-800/50 border-slate-700/50 cursor-pointer hover:border-emerald-500/50 hover:bg-slate-800 transition-all"
+            onClick={() => setCurrentView("ride-details")}
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-slate-500">{ride.id}</span>
@@ -1341,6 +1345,132 @@ export default function RiderApp() {
     </div>
   )
 
+  const NotificationsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Notifications</h2>
+      <div className="space-y-3">
+        {[
+          { title: "Trip Reminder", desc: "Your scheduled ride is in 30 minutes", time: "2:30 PM" },
+          { title: "New Promotion", desc: "Get 20% off your next ride!", time: "10:45 AM" },
+          { title: "Driver Arrived", desc: "Your driver has arrived at pickup", time: "Yesterday" },
+        ].map((n, i) => (
+          <div key={i} className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+            <p className="font-semibold text-white text-sm">{n.title}</p>
+            <p className="text-xs text-gray-400 mt-1">{n.desc}</p>
+            <p className="text-xs text-gray-600 mt-1">{n.time}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const SafetyView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Safety Center</h2>
+      <div className="space-y-3">
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <Shield className="w-5 h-5 mr-3" />
+          Emergency Contacts
+        </Button>
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <AlertTriangle className="w-5 h-5 mr-3" />
+          Report Safety Issue
+        </Button>
+        <Button className="w-full justify-start bg-slate-800 hover:bg-slate-700 text-white">
+          <Users className="w-5 h-5 mr-3" />
+          Share Trip Details
+        </Button>
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+          <p className="text-sm text-emerald-400 font-semibold">Your Safety Features:</p>
+          <p className="text-xs text-emerald-300 mt-2">- Real-time location sharing</p>
+          <p className="text-xs text-emerald-300">- Emergency button access</p>
+          <p className="text-xs text-emerald-300">- Driver verification system</p>
+        </div>
+      </div>
+    </div>
+  )
+
+  const SettingsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("home")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back
+      </Button>
+      <h2 className="text-xl font-bold text-white">Settings</h2>
+      <div className="space-y-3">
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Ride Notifications</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Location Services</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700 flex items-center justify-between">
+          <p className="text-white text-sm">Dark Mode</p>
+          <input type="checkbox" defaultChecked className="w-4 h-4" />
+        </div>
+        <Button variant="destructive" className="w-full mt-4">
+          Sign Out
+        </Button>
+      </div>
+    </div>
+  )
+
+  const RideDetailsView = () => (
+    <div className="space-y-4">
+      <Button variant="ghost" className="text-gray-300 mb-4" onClick={() => setCurrentView("history")}>
+        <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
+        Back to History
+      </Button>
+      <h2 className="text-xl font-bold text-white">Ride Details</h2>
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Ride ID</p>
+          <p className="text-white font-semibold">GW-10234</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Route</p>
+          <p className="text-white font-semibold">Downtown LA → LAX Airport</p>
+          <p className="text-xs text-gray-400 mt-1">12.5 miles • 45 minutes</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Driver</p>
+          <p className="text-white font-semibold">John D.</p>
+          <p className="text-xs text-emerald-400 mt-1">★★★★★ (4.95 rating)</p>
+        </div>
+        <div className="p-4 rounded-lg bg-slate-800/50 border border-slate-700">
+          <p className="text-xs text-gray-500 mb-2">Vehicle</p>
+          <p className="text-white font-semibold">Black Honda Civic</p>
+          <p className="text-xs text-gray-400 mt-1">License: GW-5239K</p>
+        </div>
+        <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
+          <p className="text-xs text-gray-500 mb-2">Payment</p>
+          <div className="flex items-center justify-between">
+            <p className="text-white font-semibold">Visa ending in 4242</p>
+            <p className="text-lg font-bold text-emerald-400">$32.50</p>
+          </div>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <Button className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white">
+            Rate Driver
+          </Button>
+          <Button variant="outline" className="flex-1 text-white border-gray-600 hover:border-gray-400">
+            Report Issue
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
       {/* Header */}
@@ -1363,8 +1493,13 @@ export default function RiderApp() {
         {currentView === "booking" && <BookingView />}
         {currentView === "tracking" && <TrackingView />}
         {currentView === "history" && <HistoryView />}
+        {currentView === "ride-details" && <RideDetailsView />}
         {currentView === "profile" && <ProfileView />}
         {currentView === "support" && <SupportView />}
+        {currentView === "payment" && <PaymentMethodsPage />}
+        {currentView === "notifications" && <NotificationsView />}
+        {currentView === "safety" && <SafetyView />}
+        {currentView === "settings" && <SettingsView />}
       </div>
 
       {/* Bottom Navigation */}

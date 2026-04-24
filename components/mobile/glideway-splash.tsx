@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { ArrowRight, MapPin, Shield, Zap } from "lucide-react"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 export function GlideWaySplash() {
   const [showContent, setShowContent] = useState(false)
@@ -16,6 +17,11 @@ export function GlideWaySplash() {
 
       {/* Content */}
       <div className="relative z-10 px-6 py-12 max-w-md w-full flex flex-col items-center text-center">
+        {/* Logo */}
+        <div className={`mb-8 transition-all duration-1000 ${showContent ? "scale-100 opacity-100" : "scale-75 opacity-0"}`}>
+          <GlidewayLogo variant="full" size="lg" />
+        </div>
+
         {/* Main Heading */}
         <div className={`transition-all duration-1000 ${showContent ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2 leading-tight">

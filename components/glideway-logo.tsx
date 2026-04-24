@@ -12,29 +12,26 @@ interface LogoProps {
   className?: string
 }
 
-// The official GlideWay icon SVG - green arc with motion lines and white road
-function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }) {
+// The official GlideWay icon SVG - bright green C-shape emblem with motion lines and white road
+function GlideWayIcon({ size = 60, id = 'main' }: { size?: number; id?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 200 200" className="flex-shrink-0">
-      {/* Bright lime green circular arc - top portion of circle */}
+    <svg width={size} height={size} viewBox="0 0 180 180" className="flex-shrink-0">
+      {/* Bright lime green C-shaped emblem (filled arc) */}
       <path
-        d="M 50 100 A 60 60 0 0 1 150 100"
-        stroke="#7CFF3A"
-        strokeWidth="18"
-        fill="none"
-        strokeLinecap="round"
+        d="M 60 30 A 60 60 0 0 1 130 100 L 115 115 A 45 45 0 0 0 75 45 Z"
+        fill="#7CFF3A"
       />
 
-      {/* Motion speed lines - horizontal on left side, decreasing */}
-      <line x1="10" y1="70" x2="50" y2="70" stroke="#7CFF3A" strokeWidth="7" strokeLinecap="round" />
-      <line x1="15" y1="100" x2="50" y2="100" stroke="#7CFF3A" strokeWidth="6" strokeLinecap="round" opacity="0.8" />
-      <line x1="20" y1="130" x2="50" y2="130" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" opacity="0.5" />
+      {/* Motion speed lines - horizontal on left, decreasing length and opacity */}
+      <line x1="15" y1="60" x2="60" y2="60" stroke="#7CFF3A" strokeWidth="7" strokeLinecap="round" />
+      <line x1="20" y1="90" x2="58" y2="90" stroke="#7CFF3A" strokeWidth="6" strokeLinecap="round" opacity="0.8" />
+      <line x1="28" y1="120" x2="56" y2="120" stroke="#7CFF3A" strokeWidth="5" strokeLinecap="round" opacity="0.6" />
 
-      {/* White curved S-shape/swoosh road element - inside the arc */}
+      {/* White curved road/swoosh - flows from inside emblem to right */}
       <path
-        d="M 65 115 Q 85 95 105 75 Q 125 55 145 50"
+        d="M 65 100 Q 85 80 105 65 Q 125 50 145 45"
         stroke="#ffffff"
-        strokeWidth="20"
+        strokeWidth="18"
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -42,7 +39,7 @@ function GlideWayIcon({ size = 48, id = 'main' }: { size?: number; id?: string }
 
       {/* Road center dashed line - bright green */}
       <path
-        d="M 65 115 Q 85 95 105 75 Q 125 55 145 50"
+        d="M 65 100 Q 85 80 105 65 Q 125 50 145 45"
         stroke="#7CFF3A"
         strokeWidth="3"
         fill="none"

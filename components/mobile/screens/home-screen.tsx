@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 const GOOGLE_MAPS_API_KEY = "AIzaSyAc7vlAT_grULZzlCdRB_LfdANiOt9mDP4"
 
@@ -280,8 +281,8 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
         )}
 
         {/* Logo and Header */}
-        <div className="absolute top-3 left-3 z-20 bg-gray-900/90 rounded-xl px-3 py-1.5 shadow-lg backdrop-blur-sm">
-          <span className="text-white font-bold text-sm">GlideWay</span>
+        <div className="absolute top-3 left-3 z-20 bg-black/70 rounded-xl p-2 shadow-lg backdrop-blur-sm">
+          <GlidewayLogo variant="icon" size="sm" />
         </div>
 
         {/* Nearby drivers indicator */}

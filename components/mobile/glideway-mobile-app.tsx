@@ -7,6 +7,7 @@ import { PaymentsScreen } from "./screens/payments-screen"
 import { AccountScreen } from "./screens/account-screen"
 import { DriverApp } from "./screens/driver-app"
 import { AdminDashboard } from "./screens/admin-dashboard"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 type AppMode = "rider" | "driver" | "admin"
 type Screen = "home" | "activity" | "payments" | "account"

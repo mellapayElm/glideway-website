@@ -5,6 +5,7 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { GlidewayLogo } from "@/components/glideway-logo"
 
 const navLinks = [
   { href: "#home", label: "Home" },
@@ -24,8 +25,8 @@ export function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="text-xl font-bold text-white hover:opacity-80 transition-opacity">
-            GLIDEWAY
+          <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
+            <GlidewayLogo variant="horizontal" size="sm" />
           </Link>
 
           {/* Desktop Navigation */}

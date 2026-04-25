@@ -471,7 +471,6 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
                   <span className="text-gray-500 text-xs font-medium">SELECT A RIDE</span>
                   <div className="flex-1 h-px bg-gray-800" />
                 </div>
-                </div>
 
                 <div className="space-y-2 mb-4">
                   {RIDE_TYPES.map((ride) => (

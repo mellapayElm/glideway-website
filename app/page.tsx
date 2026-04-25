@@ -4,7 +4,9 @@ import { Navigation } from "@/components/navigation"
 import { HeroSection } from "@/components/hero-section"
 import { MissionSection } from "@/components/mission-section"
 import { FareEstimateSection } from "@/components/fare-estimate-section"
+import { GlideWayRide } from "@/components/glideway-ride"
 import { RideTypesSection } from "@/components/ride-types-section"
+import { LiveTrackingSection } from "@/components/live-tracking-section"
 import { FeaturesSection } from "@/components/features-section"
 import { DriverSection } from "@/components/driver-section"
 import { SupportSection } from "@/components/support-section"
@@ -18,7 +20,11 @@ export default function Home() {
       <HeroSection />
       <MissionSection />
       <FareEstimateSection />
+      <section id="booking">
+        <GlideWayRide />
+      </section>
       <RideTypesSection />
+      <LiveTrackingSection />
       <FeaturesSection />
       <DriverSection />
       <SupportSection />

@@ -1,20 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { MapPin, Locate, X, Search, Navigation } from "lucide-react"
+import { MapPin, Locate, X, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import dynamic from "next/dynamic"
-import { searchAddresses, reverseGeocode, calculateDistance } from "@/lib/map-utils"
-
-// Dynamic import to avoid SSR issues
-const LeafletMapInner = dynamic(() => import("./leaflet-map-inner"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-gray-100 animate-pulse flex items-center justify-center">
-      <span className="text-gray-500">Loading map...</span>
-    </div>
-  ),
-})
+import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 interface LatLng {
   lat: number
@@ -30,7 +19,6 @@ interface BookingMapPanelProps {
   height?: string | number
 }
 
-// Colorado Springs default
 const DEFAULT_CENTER = { lat: 38.8339, lng: -104.8214 }
 
 export function BookingMapPanel({
@@ -41,221 +29,316 @@ export function BookingMapPanel({
   className = "",
   height = "500px",
 }: BookingMapPanelProps) {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+  const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
+  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(null)
+
   const [pickupValue, setPickupValue] = useState(pickup || "")
   const [dropoffValue, setDropoffValue] = useState(dropoff || "")
   const [pickupCoords, setPickupCoords] = useState<LatLng | null>(null)
   const [dropoffCoords, setDropoffCoords] = useState<LatLng | null>(null)
   const [isLocating, setIsLocating] = useState(false)
-  const [pickupSuggestions, setPickupSuggestions] = useState<Array<{ address: string; lat: number; lng: number }>>([])
-  const [dropoffSuggestions, setDropoffSuggestions] = useState<Array<{ address: string; lat: number; lng: number }>>([])
-  const [activeField, setActiveField] = useState<"pickup" | "dropoff" | null>(null)
-  const [distance, setDistance] = useState<number | null>(null)
+  const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([])
+  const [dropoffSuggestions, setDropoffSuggestions] = useState<any[]>([])
+  const debounceRef = useRef<NodeJS.Timeout>()
 
-  const debounceRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Get initial user location
+  // Initialize map
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-          setPickupCoords(coords)
-          const address = await reverseGeocode(coords.lat, coords.lng)
-          setPickupValue(address)
-          onPickupChange?.(address, coords)
-        },
-        () => {
-          setPickupCoords(DEFAULT_CENTER)
+    const initMap = async () => {
+      try {
+        await loadGoogleMaps()
+
+        if (!mapRef.current || !window.google?.maps) return
+
+        const map = new window.google.maps.Map(mapRef.current, {
+          center: pickupCoords || DEFAULT_CENTER,
+          zoom: 15,
+          disableDefaultUI: true,
+          zoomControl: true,
+          styles: [
+            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+          ],
+        })
+
+        mapInstanceRef.current = map
+        geocoderRef.current = new window.google.maps.Geocoder()
+        placesServiceRef.current = new window.google.maps.PlacesService(map)
+        autocompleteRef.current = new window.google.maps.places.AutocompleteService()
+        directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+          map,
+          polylineOptions: { strokeColor: "#FF9E1B", strokeWeight: 5 },
+          suppressMarkers: true,
+        })
+
+        // Add pickup marker
+        pickupMarkerRef.current = new window.google.maps.Marker({
+          position: pickupCoords || DEFAULT_CENTER,
+          map,
+          title: "Pickup",
+          icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+        })
+
+        // Get user location
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((position) => {
+            const userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            }
+            setPickupCoords(userLocation)
+            pickupMarkerRef.current?.setPosition(userLocation)
+            map.panTo(userLocation)
+
+            // Reverse geocode
+            if (geocoderRef.current) {
+              geocoderRef.current.geocode({ location: userLocation }, (results, status) => {
+                if (status === "OK" && results?.[0]) {
+                  setPickupValue(results[0].formatted_address)
+                  onPickupChange?.(results[0].formatted_address, userLocation)
+                }
+              })
+            }
+          })
         }
-      )
+      } catch (error) {
+        console.error("[v0] Failed to initialize map:", error)
+      }
     }
+
+    initMap()
   }, [])
 
-  // Calculate distance when both locations are set
-  useEffect(() => {
-    if (pickupCoords && dropoffCoords) {
-      const dist = calculateDistance(pickupCoords.lat, pickupCoords.lng, dropoffCoords.lat, dropoffCoords.lng)
-      setDistance(dist)
-    } else {
-      setDistance(null)
-    }
-  }, [pickupCoords, dropoffCoords])
-
-  // Search for addresses
-  const handleSearch = useCallback(async (query: string, field: "pickup" | "dropoff") => {
-    if (query.length < 2) {
-      if (field === "pickup") setPickupSuggestions([])
-      else setDropoffSuggestions([])
+  // Search for pickup location
+  const searchPickup = useCallback((query: string) => {
+    if (!query || query.length < 2) {
+      setPickupSuggestions([])
       return
     }
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchAddresses(query)
-      if (field === "pickup") setPickupSuggestions(results)
-      else setDropoffSuggestions(results)
+    debounceRef.current = setTimeout(() => {
+      if (!autocompleteRef.current) return
+
+      autocompleteRef.current.getPlacePredictions(
+        { input: query, componentRestrictions: { country: "us" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions) {
+            setPickupSuggestions(predictions)
+          }
+        }
+      )
     }, 300)
   }, [])
 
-  // Handle suggestion selection
-  const handleSelectSuggestion = (suggestion: { address: string; lat: number; lng: number }, field: "pickup" | "dropoff") => {
-    const coords = { lat: suggestion.lat, lng: suggestion.lng }
-    if (field === "pickup") {
-      setPickupValue(suggestion.address)
-      setPickupCoords(coords)
-      setPickupSuggestions([])
-      onPickupChange?.(suggestion.address, coords)
-    } else {
-      setDropoffValue(suggestion.address)
-      setDropoffCoords(coords)
+  // Search for dropoff location
+  const searchDropoff = useCallback((query: string) => {
+    if (!query || query.length < 2) {
       setDropoffSuggestions([])
-      onDropoffChange?.(suggestion.address, coords)
+      return
     }
-    setActiveField(null)
-  }
 
-  // Handle locate me
-  const handleLocateMe = async () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    debounceRef.current = setTimeout(() => {
+      if (!autocompleteRef.current) return
+
+      autocompleteRef.current.getPlacePredictions(
+        { input: query, componentRestrictions: { country: "us" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions) {
+            setDropoffSuggestions(predictions)
+          }
+        }
+      )
+    }, 300)
+  }, [])
+
+  // Select pickup location
+  const selectPickup = useCallback((prediction: any) => {
+    if (!placesServiceRef.current || !mapInstanceRef.current) return
+
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ["geometry", "formatted_address"] },
+      (place, status) => {
+        if (status === "OK" && place?.geometry?.location) {
+          const coords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }
+          setPickupCoords(coords)
+          setPickupValue(place.formatted_address || "")
+          setPickupSuggestions([])
+
+          pickupMarkerRef.current?.setPosition(coords)
+          mapInstanceRef.current?.panTo(coords)
+          onPickupChange?.(place.formatted_address || "", coords)
+
+          // Draw route if both coordinates exist
+          if (dropoffCoords) {
+            drawRoute(coords, dropoffCoords)
+          }
+        }
+      }
+    )
+  }, [dropoffCoords])
+
+  // Select dropoff location
+  const selectDropoff = useCallback((prediction: any) => {
+    if (!placesServiceRef.current || !mapInstanceRef.current) return
+
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ["geometry", "formatted_address"] },
+      (place, status) => {
+        if (status === "OK" && place?.geometry?.location) {
+          const coords = { lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }
+          setDropoffCoords(coords)
+          setDropoffValue(place.formatted_address || "")
+          setDropoffSuggestions([])
+
+          // Update or create dropoff marker
+          if (dropoffMarkerRef.current) {
+            dropoffMarkerRef.current.setPosition(coords)
+          } else {
+            dropoffMarkerRef.current = new window.google.maps.Marker({
+              position: coords,
+              map: mapInstanceRef.current,
+              title: "Dropoff",
+              icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+            })
+          }
+
+          onDropoffChange?.(place.formatted_address || "", coords)
+
+          // Draw route if pickup exists
+          if (pickupCoords) {
+            drawRoute(pickupCoords, coords)
+          }
+        }
+      }
+    )
+  }, [pickupCoords])
+
+  // Draw route between pickup and dropoff
+  const drawRoute = useCallback((from: LatLng, to: LatLng) => {
+    if (!directionsRendererRef.current) return
+
+    const directionsService = new google.maps.DirectionsService()
+    directionsService.route(
+      {
+        origin: new google.maps.LatLng(from.lat, from.lng),
+        destination: new google.maps.LatLng(to.lat, to.lng),
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === "OK" && result) {
+          directionsRendererRef.current?.setDirections(result)
+        }
+      }
+    )
+  }, [])
+
+  const handleUseCurrentLocation = async () => {
     if (!navigator.geolocation) return
 
     setIsLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        const address = await reverseGeocode(coords.lat, coords.lng)
-        setPickupValue(address)
-        setPickupCoords(coords)
-        onPickupChange?.(address, coords)
-        setIsLocating(false)
-      },
-      () => {
-        setIsLocating(false)
+    navigator.geolocation.getCurrentPosition((position) => {
+      const coords = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
       }
-    )
+      setPickupCoords(coords)
+      setIsLocating(false)
+
+      if (geocoderRef.current) {
+        geocoderRef.current.geocode({ location: coords }, (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            setPickupValue(results[0].formatted_address)
+            onPickupChange?.(results[0].formatted_address, coords)
+          }
+        })
+      }
+
+      pickupMarkerRef.current?.setPosition(coords)
+      mapInstanceRef.current?.panTo(coords)
+    })
   }
 
   return (
     <div className={`flex flex-col gap-4 ${className}`}>
-      {/* Inputs */}
-      <div className="space-y-3">
-        {/* Pickup Input */}
-        <div className="relative">
-          <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg focus-within:border-lime-500 focus-within:ring-1 focus-within:ring-lime-500">
-            <div className="w-3 h-3 bg-lime-500 rounded-full flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Enter pickup location"
-              value={pickupValue}
-              onChange={(e) => {
-                setPickupValue(e.target.value)
-                handleSearch(e.target.value, "pickup")
-              }}
-              onFocus={() => setActiveField("pickup")}
-              className="flex-1 bg-transparent outline-none text-sm"
-            />
-            {pickupValue && (
-              <button
-                onClick={() => {
-                  setPickupValue("")
-                  setPickupCoords(null)
-                  setPickupSuggestions([])
-                  onPickupChange?.("")
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          {/* Pickup Suggestions */}
-          {activeField === "pickup" && pickupSuggestions.length > 0 && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {pickupSuggestions.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectSuggestion(suggestion, "pickup")}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 text-left"
-                >
-                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm truncate">{suggestion.address}</span>
-                </button>
-              ))}
-            </div>
-          )}
+      {/* Map */}
+      <div ref={mapRef} style={{ height, width: "100%" }} className="rounded-lg border border-gray-200" />
+
+      {/* Pickup Input */}
+      <div className="relative">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Enter pickup location"
+            value={pickupValue}
+            onChange={(e) => {
+              setPickupValue(e.target.value)
+              searchPickup(e.target.value)
+            }}
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+          />
+          <Button variant="outline" size="sm" onClick={handleUseCurrentLocation} disabled={isLocating}>
+            <Locate className="w-4 h-4" />
+          </Button>
         </div>
-
-        {/* Dropoff Input */}
-        <div className="relative">
-          <div className="flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg focus-within:border-red-500 focus-within:ring-1 focus-within:ring-red-500">
-            <div className="w-3 h-3 bg-red-500 rounded-full flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Enter dropoff location"
-              value={dropoffValue}
-              onChange={(e) => {
-                setDropoffValue(e.target.value)
-                handleSearch(e.target.value, "dropoff")
-              }}
-              onFocus={() => setActiveField("dropoff")}
-              className="flex-1 bg-transparent outline-none text-sm"
-            />
-            {dropoffValue && (
+        {pickupSuggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+            {pickupSuggestions.map((suggestion) => (
               <button
-                onClick={() => {
-                  setDropoffValue("")
-                  setDropoffCoords(null)
-                  setDropoffSuggestions([])
-                  onDropoffChange?.("")
-                }}
-                className="text-gray-400 hover:text-gray-600"
+                key={suggestion.place_id}
+                onClick={() => selectPickup(suggestion)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-0 flex items-start gap-2"
               >
-                <X className="w-4 h-4" />
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                <div>
+                  <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
+                  <div className="text-xs text-gray-500">{suggestion.structured_formatting.secondary_text}</div>
+                </div>
               </button>
-            )}
-          </div>
-          {/* Dropoff Suggestions */}
-          {activeField === "dropoff" && dropoffSuggestions.length > 0 && (
-            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-              {dropoffSuggestions.map((suggestion, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectSuggestion(suggestion, "dropoff")}
-                  className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 text-left"
-                >
-                  <MapPin className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                  <span className="text-sm truncate">{suggestion.address}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Locate Me Button */}
-        <Button onClick={handleLocateMe} disabled={isLocating} variant="outline" className="w-full">
-          <Locate className="w-4 h-4 mr-2" />
-          {isLocating ? "Getting location..." : "Use my location"}
-        </Button>
-
-        {/* Distance indicator */}
-        {distance && (
-          <div className="flex items-center justify-center gap-2 p-2 bg-lime-50 border border-lime-200 rounded-lg">
-            <Navigation className="w-4 h-4 text-lime-600" />
-            <span className="text-sm font-medium text-lime-700">Distance: {distance.toFixed(1)} miles</span>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Map */}
-      <div style={{ height }} className="rounded-lg border border-gray-200 overflow-hidden">
-        <LeafletMapInner
-          pickupLat={pickupCoords?.lat || DEFAULT_CENTER.lat}
-          pickupLng={pickupCoords?.lng || DEFAULT_CENTER.lng}
-          dropoffLat={dropoffCoords?.lat}
-          dropoffLng={dropoffCoords?.lng}
-          pickupAddress={pickupValue || "Pickup"}
-          dropoffAddress={dropoffValue || "Dropoff"}
+      {/* Dropoff Input */}
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Enter dropoff location"
+          value={dropoffValue}
+          onChange={(e) => {
+            setDropoffValue(e.target.value)
+            searchDropoff(e.target.value)
+          }}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg"
         />
+        {dropoffSuggestions.length > 0 && (
+          <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+            {dropoffSuggestions.map((suggestion) => (
+              <button
+                key={suggestion.place_id}
+                onClick={() => selectDropoff(suggestion)}
+                className="w-full px-4 py-2 text-left hover:bg-gray-100 border-b last:border-0 flex items-start gap-2"
+              >
+                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-500" />
+                <div>
+                  <div className="font-medium text-sm">{suggestion.structured_formatting.main_text}</div>
+                  <div className="text-xs text-gray-500">{suggestion.structured_formatting.secondary_text}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

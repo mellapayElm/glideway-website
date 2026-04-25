@@ -2,11 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Calendar, Users, MapPin, Clock, Navigation, Plus, X } from "lucide-react"
-import dynamic from "next/dynamic"
-import { searchAddresses, reverseGeocode, calculateDistance, estimateRideCost } from "@/lib/map-utils"
-
-// Dynamic import to avoid SSR issues with Leaflet
-const LeafletMap = dynamic(() => import("./leaflet-map").then((mod) => mod.LeafletMap), { ssr: false })
+import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 const RIDE_TYPES = [
   { id: "economy", name: "Economy", price: "$26.96", time: "in 8 min", seats: 4, description: "Affordable rides" },
@@ -21,10 +17,10 @@ const SHORTCUTS = [
 ]
 
 interface PlaceSuggestion {
-  address: string
-  lat: number
-  lng: number
-  displayName: string
+  placeId: string
+  description: string
+  mainText: string
+  secondaryText: string
 }
 
 interface ActiveRide {
@@ -101,17 +97,31 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   // Initialize map and reverse geocode user location
   useEffect(() => {
     const initializeUserLocation = async () => {
-      if (userLocation) {
+      if (userLocation && !pickup) {
         setPickupLocation(userLocation)
-        // Reverse geocode to get address
-        const address = await reverseGeocode(userLocation.lat, userLocation.lng)
-        setPickup(address)
+        // Reverse geocode to get address using Google Maps
+        try {
+          await loadGoogleMaps()
+          if (window.google?.maps) {
+            const geocoder = new window.google.maps.Geocoder()
+            geocoder.geocode({ location: userLocation }, (results, status) => {
+              if (status === "OK" && results?.[0]) {
+                setPickup(results[0].formatted_address)
+              } else {
+                setPickup("Current location")
+              }
+            })
+          }
+        } catch (error) {
+          console.error("[v0] Reverse geocoding failed:", error)
+          setPickup("Current location")
+        }
       }
     }
     initializeUserLocation()
-  }, [userLocation])
+  }, [userLocation, pickup])
 
-  // Search for addresses using Nominatim (free)
+  // Search for addresses using Google Maps Places API
   const searchPlaces = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSuggestions([])
@@ -123,33 +133,89 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     }
 
     debounceRef.current = setTimeout(async () => {
-      const results = await searchAddresses(query)
-      setSuggestions(results)
+      try {
+        await loadGoogleMaps()
+        if (!window.google?.maps) return
+
+        const autocompleteService = new window.google.maps.places.AutocompleteService()
+        autocompleteService.getPlacePredictions(
+          { input: query, componentRestrictions: { country: "us" } },
+          (predictions, status) => {
+            if (status === "OK" && predictions) {
+              // Store predictions temporarily, we'll get details on select
+              setSuggestions(
+                predictions.map((p) => ({
+                  placeId: p.place_id,
+                  description: p.description,
+                  mainText: p.structured_formatting.main_text,
+                  secondaryText: p.structured_formatting.secondary_text,
+                }))
+              )
+            }
+          }
+        )
+      } catch (error) {
+        console.error("[v0] Places search failed:", error)
+      }
     }, 300)
   }, [])
 
   // Handle place selection
   const handleSelectPlace = useCallback((suggestion: PlaceSuggestion) => {
-    if (searchType === "pickup") {
-      setPickup(suggestion.address)
-      setPickupLocation({ lat: suggestion.lat, lng: suggestion.lng })
-    } else {
-      setDropoff(suggestion.address)
-      setDropoffLocation({ lat: suggestion.lat, lng: suggestion.lng })
-      
-      // Calculate distance and cost
-      if (pickupLocation) {
-        const distance = calculateDistance(pickupLocation.lat, pickupLocation.lng, suggestion.lat, suggestion.lng)
-        const cost = estimateRideCost(distance, selectedRide)
-        setEstimatedCost(`$${cost.toFixed(2)}`)
-        setEstimatedTime(`${Math.ceil(distance * 2)} min`)
+    // Get place details from Google Maps
+    const getPlaceDetails = async () => {
+      try {
+        await loadGoogleMaps()
+        if (!window.google?.maps) return
+
+        const placesService = new window.google.maps.places.PlacesService(
+          document.createElement("div")
+        )
+        placesService.getDetails(
+          { placeId: suggestion.placeId, fields: ["geometry", "formatted_address"] },
+          (place, status) => {
+            if (status === "OK" && place?.geometry?.location) {
+              const coords = {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+              }
+              const address = place.formatted_address || suggestion.description
+
+              if (searchType === "pickup") {
+                setPickup(address)
+                setPickupLocation(coords)
+              } else {
+                setDropoff(address)
+                setDropoffLocation(coords)
+
+                // Calculate distance and cost
+                if (pickupLocation) {
+                  const distance = window.google.maps.geometry.spherical.computeDistanceBetween(
+                    new window.google.maps.LatLng(pickupLocation.lat, pickupLocation.lng),
+                    new window.google.maps.LatLng(coords.lat, coords.lng)
+                  )
+                  const distanceInMiles = distance / 1609.34
+                  // Estimate: $2.50 base + $1.50 per mile
+                  const estimatedFare = 2.5 + distanceInMiles * 1.5
+                  setEstimatedCost(`$${estimatedFare.toFixed(2)}`)
+                  setEstimatedTime(`${Math.ceil(distanceInMiles * 2)} min`)
+                }
+
+                setShowRideOptions(true)
+              }
+
+              setShowLocationSearch(false)
+              setSuggestions([])
+              setSearchQuery("")
+            }
+          }
+        )
+      } catch (error) {
+        console.error("[v0] Failed to get place details:", error)
       }
-      
-      setShowRideOptions(true)
     }
-    setShowLocationSearch(false)
-    setSuggestions([])
-    setSearchQuery("")
+
+    getPlaceDetails()
   }, [searchType, pickupLocation])
 
   // Handle ride booking
@@ -218,17 +284,8 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
               </svg>
             </div>
           </div>
-          {/* Leaflet Map container */}
-          {userLocation && (
-            <LeafletMap
-              pickupLat={pickupLocation?.lat || userLocation.lat}
-              pickupLng={pickupLocation?.lng || userLocation.lng}
-              dropoffLat={dropoffLocation?.lat}
-              dropoffLng={dropoffLocation?.lng}
-              pickupAddress={pickup}
-              dropoffAddress={dropoff}
-            />
-          )}
+          {/* Google Map container */}
+          <div id="glideway-mobile-map" style={{ width: "100%", height: "100%", minHeight: "400px" }} />
         </div>
 
         {/* Ride Status Card */}
@@ -310,17 +367,8 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
         <div className="absolute inset-0 bg-gradient-to-b from-gray-950/80 via-transparent to-gray-950/90" />
       </div>
       
-      {/* Leaflet Map container */}
-      {userLocation && (
-        <LeafletMap
-          pickupLat={pickupLocation?.lat || userLocation.lat}
-          pickupLng={pickupLocation?.lng || userLocation.lng}
-          dropoffLat={dropoffLocation?.lat}
-          dropoffLng={dropoffLocation?.lng}
-          pickupAddress={pickup}
-          dropoffAddress={dropoff}
-        />
-      )}
+      {/* Google Map container */}
+      <div id="glideway-mobile-map-main" style={{ width: "100%", height: "100%", minHeight: "400px" }} />
 
       {/* Content Overlay */}
       <div className="relative z-[5] flex flex-col h-full">

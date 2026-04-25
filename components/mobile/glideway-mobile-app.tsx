@@ -160,14 +160,14 @@ export function GlideWayMobileApp() {
     currentScreen !== "register"
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-gray-950 relative overflow-hidden shadow-2xl">
+    <div className="flex flex-col h-screen max-w-md mx-auto bg-white relative overflow-hidden shadow-2xl">
       {/* Status Bar - Only show when logged in */}
       {isLoggedIn && currentScreen !== "splash" && (
-        <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-gray-800">
+        <div className="bg-white text-gray-900 px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-gray-200">
           <span>9:41</span>
           <button 
             onClick={() => setShowAppSwitcher(true)}
-            className="px-2 py-0.5 bg-lime-400/20 text-lime-400 rounded text-xs font-medium"
+            className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium"
           >
             {appMode === "rider" ? "Rider" : appMode === "driver" ? "Driver" : "Admin"}
           </button>
@@ -191,7 +191,7 @@ export function GlideWayMobileApp() {
 
       {/* Bottom Navigation */}
       {showBottomNav && (
-        <nav className="bg-gray-900 border-t border-gray-800 px-2 py-2">
+        <nav className="bg-white border-t border-gray-200 px-2 py-2">
           <div className="flex items-center justify-around">
             <NavItem 
               icon={<HomeIcon />} 
@@ -223,9 +223,9 @@ export function GlideWayMobileApp() {
 
       {/* App Switcher Modal */}
       {showAppSwitcher && (
-        <div className="absolute inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm">
-            <h3 className="font-bold text-lg text-white mb-4">Switch App Mode</h3>
+        <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="font-bold text-lg text-gray-900 mb-4">Switch App Mode</h3>
             <div className="space-y-2">
               <button
                 onClick={() => {
@@ -233,17 +233,17 @@ export function GlideWayMobileApp() {
                   setShowAppSwitcher(false)
                 }}
                 className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                  appMode === "rider" ? "bg-lime-400/20 border-2 border-lime-400" : "bg-gray-800 border-2 border-transparent"
+                  appMode === "rider" ? "bg-green-50 border-2 border-green-500" : "bg-gray-100 border-2 border-transparent"
                 }`}
               >
-                <div className="w-12 h-12 bg-lime-400/20 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-white">Rider App</p>
-                  <p className="text-sm text-gray-400">Book rides and track trips</p>
+                  <p className="font-semibold text-gray-900">Rider App</p>
+                  <p className="text-sm text-gray-500">Book rides and track trips</p>
                 </div>
               </button>
 
@@ -253,17 +253,17 @@ export function GlideWayMobileApp() {
                   setShowAppSwitcher(false)
                 }}
                 className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                  appMode === "driver" ? "bg-blue-500/20 border-2 border-blue-500" : "bg-gray-800 border-2 border-transparent"
+                  appMode === "driver" ? "bg-blue-50 border-2 border-blue-500" : "bg-gray-100 border-2 border-transparent"
                 }`}
               >
-                <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-white">Driver App</p>
-                  <p className="text-sm text-gray-400">Accept rides and earn money</p>
+                  <p className="font-semibold text-gray-900">Driver App</p>
+                  <p className="text-sm text-gray-500">Accept rides and earn money</p>
                 </div>
               </button>
 
@@ -273,24 +273,24 @@ export function GlideWayMobileApp() {
                   setShowAppSwitcher(false)
                 }}
                 className={`w-full flex items-center gap-4 p-4 rounded-xl transition-all ${
-                  appMode === "admin" ? "bg-purple-500/20 border-2 border-purple-500" : "bg-gray-800 border-2 border-transparent"
+                  appMode === "admin" ? "bg-amber-50 border-2 border-amber-500" : "bg-gray-100 border-2 border-transparent"
                 }`}
               >
-                <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
                 <div className="text-left">
-                  <p className="font-semibold text-white">Admin Dashboard</p>
-                  <p className="text-sm text-gray-400">Manage users, drivers, trips</p>
+                  <p className="font-semibold text-gray-900">Admin Dashboard</p>
+                  <p className="text-sm text-gray-500">Manage users, drivers, trips</p>
                 </div>
               </button>
             </div>
 
             <button
               onClick={() => setShowAppSwitcher(false)}
-              className="w-full mt-4 py-3 text-gray-400 hover:text-white font-medium transition-colors"
+              className="w-full mt-4 py-3 text-gray-500 hover:text-gray-900 font-medium transition-colors"
             >
               Cancel
             </button>
@@ -317,8 +317,8 @@ function NavItem({
       onClick={onClick}
       className={`flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all ${
         active 
-          ? "text-lime-400 bg-lime-400/10" 
-          : "text-gray-500 hover:text-gray-300"
+          ? "text-green-600 bg-green-50" 
+          : "text-gray-500 hover:text-gray-700"
       }`}
     >
       <span className={active ? "scale-110" : ""}>{icon}</span>

@@ -408,23 +408,84 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
             </div>
           </div>
 
+          {/* Google Map for Location Search */}
+          <div className="h-[40%] relative bg-gray-100 border-b border-gray-200">
+            <div 
+              id="location-search-map" 
+              className="absolute inset-0"
+              ref={(el) => {
+                if (el && userLocation && window.google?.maps) {
+                  // Initialize map for location search
+                  const searchMap = new window.google.maps.Map(el, {
+                    center: userLocation,
+                    zoom: 15,
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                    mapId: "GLIDEWAY_SEARCH_MAP"
+                  })
+                  
+                  // Add center marker
+                  new window.google.maps.Marker({
+                    position: userLocation,
+                    map: searchMap,
+                    icon: {
+                      path: window.google.maps.SymbolPath.CIRCLE,
+                      scale: 10,
+                      fillColor: searchType === "pickup" ? "#22c55e" : "#ef4444",
+                      fillOpacity: 1,
+                      strokeColor: "#ffffff",
+                      strokeWeight: 3,
+                    }
+                  })
+                }
+              }}
+            />
+          </div>
+
           {/* Suggestions */}
           <div className="flex-1 overflow-y-auto">
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion.placeId}
-                onClick={() => handleSelectPlace(suggestion)}
-                className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 border-b border-gray-100"
-              >
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-gray-500" />
-                </div>
-                <div className="flex-1 text-left">
-                  <p className="font-medium text-gray-900">{suggestion.mainText}</p>
-                  <p className="text-sm text-gray-500">{suggestion.secondaryText}</p>
-                </div>
-              </button>
-            ))}
+            {suggestions.length > 0 ? (
+              suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.placeId}
+                  onClick={() => handleSelectPlace(suggestion)}
+                  className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 border-b border-gray-100"
+                >
+                  <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                    <MapPin className="w-5 h-5 text-gray-500" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-gray-900">{suggestion.mainText}</p>
+                    <p className="text-sm text-gray-500">{suggestion.secondaryText}</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className="p-4">
+                <button 
+                  onClick={() => {
+                    if (userLocation) {
+                      if (searchType === "pickup") {
+                        setPickup("Current Location")
+                      } else {
+                        setDropoff("Current Location")
+                      }
+                      setShowLocationSearch(false)
+                      setSearchQuery("")
+                    }
+                  }}
+                  className="w-full flex items-center gap-4 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition-colors"
+                >
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <Navigation className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="font-medium text-gray-900">Use current location</p>
+                    <p className="text-sm text-gray-500">Your GPS location</p>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

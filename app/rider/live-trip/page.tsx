@@ -10,7 +10,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { GlidewayLogo } from "@/components/glideway-logo"
-import GoogleMapLive from "@/components/google-map-live"
+import dynamic from "next/dynamic"
+
+const LeafletMapLive = dynamic(() => import("@/components/leaflet-map-live"), { ssr: false })
 import Link from "next/link"
 
 // Demo coordinates for Los Angeles
@@ -150,7 +152,7 @@ export default function LiveTripPage() {
               </div>
             </div>
             
-            <GoogleMapLive
+            <LeafletMapLive
               pickup={DEMO_PICKUP}
               dropoff={DEMO_DROPOFF}
               driver={driverPosition}

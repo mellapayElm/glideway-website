@@ -193,15 +193,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     setActiveRide(null)
     setShowRideOptions(false)
     setDropoff("")
-    
-    // Clear route and dropoff marker
-    if (routeRef.current) {
-      routeRef.current.setDirections({ routes: [] } as google.maps.DirectionsResult)
-    }
-    if (dropoffMarkerRef.current) {
-      dropoffMarkerRef.current.setMap(null)
-      dropoffMarkerRef.current = null
-    }
+    setDropoffLocation(null)
   }
 
   // Render active ride tracking
@@ -354,35 +346,102 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Bottom Sheet */}
-        <div className={`bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 rounded-t-3xl transition-all duration-300 ${showRideOptions ? "max-h-[70vh]" : "max-h-[50vh]"}`}>
+        {/* Bottom Sheet - Booking Form */}
+        <div className={`bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 rounded-t-3xl transition-all duration-300 ${showRideOptions ? "max-h-[75vh]" : "max-h-[55vh]"}`}>
           <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mt-3" />
           
           <div className="p-4 overflow-y-auto max-h-[calc(100%-20px)]">
-            {/* Quick Actions */}
-            <div className="flex gap-3 mb-4">
-              <button className="flex-1 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-4 py-3 transition-colors">
-                <Calendar className="w-5 h-5 text-lime-400" />
-                <span className="text-white font-medium">Schedule</span>
-              </button>
-              <button className="flex-1 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-xl px-4 py-3 transition-colors">
-                <Users className="w-5 h-5 text-lime-400" />
-                <span className="text-white font-medium">Change rider</span>
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-white mb-6">Book Your Ride</h2>
+            
+            {/* Pickup Location Section */}
+            <div className="mb-6">
+              <label className="text-sm font-medium text-gray-400 mb-2 block">Pickup Location</label>
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => {
+                    if (userLocation) {
+                      setPickupLocation(userLocation)
+                      reverseGeocode(userLocation.lat, userLocation.lng).then((addr) => {
+                        setPickup(addr)
+                      })
+                    }
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-lime-400/10 hover:bg-lime-400/20 border border-lime-400/30 rounded-lg px-3 py-2 transition-colors"
+                >
+                  <Navigation className="w-4 h-4 text-lime-400" />
+                  <span className="text-sm font-medium text-lime-400">Use Current Location</span>
+                </button>
+              </div>
+              <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-gray-300 text-sm">
+                {pickup || "Your location"}
+              </div>
+            </div>
+            
+            {/* Dropoff Location Section */}
+            <div className="mb-6">
+              <label className="text-sm font-medium text-gray-400 mb-2 block">Dropoff Location</label>
+              <button
+                onClick={() => {
+                  setSearchType("dropoff")
+                  setShowLocationSearch(true)
+                }}
+                className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 transition-colors"
+              >
+                <MapPin className="w-5 h-5 text-gray-400" />
+                <span className="text-gray-400 text-left flex-1">
+                  {dropoff || "Enter destination"}
+                </span>
               </button>
             </div>
-
-            {/* Shortcuts */}
-            <div className="space-y-2 mb-4">
-              {savedShortcuts.map((shortcut) => (
+            
+            {/* When do you need a ride? */}
+            <div className="mb-6">
+              <label className="text-sm font-medium text-gray-400 mb-3 block">When do you need a ride?</label>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {}}
+                  className="flex-1 bg-lime-400 hover:bg-lime-500 text-gray-950 font-medium py-3 rounded-lg transition-colors"
+                >
+                  Now
+                </button>
+                <button
+                  onClick={() => {}}
+                  className="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  <Clock className="w-4 h-4" />
+                  Schedule Later
+                </button>
+              </div>
+            </div>
+            
+            {/* Saved Places Section */}
+            {!showRideOptions && (
+              <>
+                <p className="text-xs font-medium text-gray-500 mb-2">SAVED PLACES</p>
+                <div className="space-y-2 mb-4">
+                  {savedShortcuts.map((shortcut) => (
                 <button
                   key={shortcut.id}
                   onClick={() => {
-                    setSearchType("dropoff")
-                    setShowLocationSearch(true)
+                    setDropoff(shortcut.address || shortcut.label)
+                    setDropoffLocation(shortcut.coordinates || undefined)
+                    if (pickupLocation && shortcut.coordinates) {
+                      const distance = calculateDistance(
+                        pickupLocation.lat,
+                        pickupLocation.lng,
+                        shortcut.coordinates.lat,
+                        shortcut.coordinates.lng
+                      )
+                      const cost = estimateRideCost(distance, selectedRide)
+                      setEstimatedCost(`$${cost.toFixed(2)}`)
+                      setEstimatedTime(`${Math.ceil(distance * 2)} min`)
+                    }
+                    setShowRideOptions(true)
                   }}
                   className="w-full flex items-center gap-4 bg-gray-800/50 hover:bg-gray-700/60 border border-gray-700 rounded-xl px-4 py-3 transition-all"
                 >
-                  <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0">
                     {shortcut.icon === "briefcase" ? (
                       <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-6 0h-4V5h4v2z"/>
@@ -394,20 +453,22 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
                     )}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-medium text-white">{shortcut.label}</p>
+                    <p className="font-medium text-white text-sm">{shortcut.label}</p>
                     <p className="text-xs text-gray-500">{shortcut.address || "Add shortcut"}</p>
                   </div>
-                  {!shortcut.address && <Plus className="w-5 h-5 text-gray-500" />}
+                  {!shortcut.address && <Plus className="w-5 h-5 text-gray-500 flex-shrink-0" />}
                 </button>
               ))}
-            </div>
+                </div>
+              </>
+            )}
 
             {/* Ride Options */}
             {showRideOptions && (
               <>
                 <div className="flex items-center gap-4 my-4">
                   <div className="flex-1 h-px bg-gray-800" />
-                  <span className="text-gray-500 text-xs font-medium">Select a ride</span>
+                  <span className="text-gray-500 text-xs font-medium">SELECT A RIDE</span>
                   <div className="flex-1 h-px bg-gray-800" />
                 </div>
 

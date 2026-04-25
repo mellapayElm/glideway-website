@@ -1,21 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin, Navigation, Loader2, X, Locate } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import dynamic from "next/dynamic"
-import { searchAddresses, reverseGeocode, calculateDistance } from "@/lib/map-utils"
-
-// Dynamic import to avoid SSR issues
-const LeafletMapInner = dynamic(() => import("./leaflet-map-inner"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-gray-100 animate-pulse flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-    </div>
-  ),
-})
+import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 interface BookingMapProps {
   pickup?: { lat: number; lng: number } | null
@@ -25,7 +14,6 @@ interface BookingMapProps {
   height?: string
 }
 
-// Default to Colorado Springs
 const DEFAULT_CENTER = { lat: 38.8339, lng: -104.8214 }
 
 export default function BookingMap({
@@ -35,28 +23,117 @@ export default function BookingMap({
   onDropoffSelect,
   height = "400px",
 }: BookingMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+  const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
+  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
+  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
+  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(null)
+
   const [pickupAddress, setPickupAddress] = useState("")
   const [dropoffAddress, setDropoffAddress] = useState("")
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(pickup || null)
   const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(dropoff || null)
-  const [pickupSuggestions, setPickupSuggestions] = useState<Array<{ address: string; lat: number; lng: number }>>([])
-  const [dropoffSuggestions, setDropoffSuggestions] = useState<Array<{ address: string; lat: number; lng: number }>>([])
+  const [pickupSuggestions, setPickupSuggestions] = useState<any[]>([])
+  const [dropoffSuggestions, setDropoffSuggestions] = useState<any[]>([])
   const [activeField, setActiveField] = useState<"pickup" | "dropoff" | null>(null)
   const [isLocating, setIsLocating] = useState(false)
   const [distance, setDistance] = useState<number | null>(null)
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
+  // Initialize map
+  useEffect(() => {
+    const initMap = async () => {
+      try {
+        await loadGoogleMaps()
+
+        if (!mapRef.current || !window.google?.maps) return
+
+        const center = pickupCoords || DEFAULT_CENTER
+
+        const map = new window.google.maps.Map(mapRef.current, {
+          center,
+          zoom: 15,
+          disableDefaultUI: false,
+          zoomControl: true,
+          fullscreenControl: false,
+          mapTypeControl: false,
+          styles: [
+            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
+          ],
+        })
+
+        mapInstanceRef.current = map
+        placesServiceRef.current = new window.google.maps.places.PlacesService(map)
+        autocompleteRef.current = new window.google.maps.places.AutocompleteService()
+
+        // Initialize directions renderer
+        directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: "#FF9E1B",
+            strokeWeight: 5,
+          },
+        })
+
+        // Add pickup marker
+        pickupMarkerRef.current = new window.google.maps.Marker({
+          position: center,
+          map,
+          title: "Pickup",
+          icon: "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+        })
+
+        // Add dropoff marker if provided
+        if (dropoffCoords) {
+          dropoffMarkerRef.current = new window.google.maps.Marker({
+            position: dropoffCoords,
+            map,
+            title: "Dropoff",
+            icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+          })
+
+          // Draw route
+          drawRoute(center, dropoffCoords)
+
+          // Fit bounds
+          const bounds = new window.google.maps.LatLngBounds()
+          bounds.extend(center)
+          bounds.extend(dropoffCoords)
+          map.fitBounds(bounds, { top: 100, bottom: 100, left: 50, right: 50 })
+        }
+      } catch (error) {
+        console.error("[v0] Failed to initialize map:", error)
+      }
+    }
+
+    initMap()
+  }, [pickupCoords, dropoffCoords])
+
   // Get initial location
   useEffect(() => {
-    if (navigator.geolocation) {
+    if (navigator.geolocation && !pickupCoords) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
           setPickupCoords(coords)
-          const address = await reverseGeocode(coords.lat, coords.lng)
-          setPickupAddress(address)
-          onPickupSelect?.(coords.lat, coords.lng, address)
+
+          // Reverse geocode
+          if (window.google?.maps) {
+            const geocoder = new window.google.maps.Geocoder()
+            geocoder.geocode({ location: coords }, (results, status) => {
+              if (status === "OK" && results?.[0]) {
+                setPickupAddress(results[0].formatted_address)
+                onPickupSelect?.(coords.lat, coords.lng, results[0].formatted_address)
+              }
+            })
+          }
         },
         () => {
           setPickupCoords(DEFAULT_CENTER)
@@ -67,14 +144,17 @@ export default function BookingMap({
 
   // Calculate distance
   useEffect(() => {
-    if (pickupCoords && dropoffCoords) {
-      const dist = calculateDistance(pickupCoords.lat, pickupCoords.lng, dropoffCoords.lat, dropoffCoords.lng)
-      setDistance(dist)
+    if (pickupCoords && dropoffCoords && window.google?.maps) {
+      const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
+        new window.google.maps.LatLng(pickupCoords.lat, pickupCoords.lng),
+        new window.google.maps.LatLng(dropoffCoords.lat, dropoffCoords.lng)
+      )
+      setDistance(dist / 1609.34) // Convert to miles
     }
   }, [pickupCoords, dropoffCoords])
 
   // Search addresses
-  const handleSearch = useCallback(async (query: string, field: "pickup" | "dropoff") => {
+  const handleSearch = useCallback((query: string, field: "pickup" | "dropoff") => {
     if (query.length < 2) {
       if (field === "pickup") setPickupSuggestions([])
       else setDropoffSuggestions([])
@@ -83,27 +163,90 @@ export default function BookingMap({
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    debounceRef.current = setTimeout(async () => {
-      const results = await searchAddresses(query)
-      if (field === "pickup") setPickupSuggestions(results)
-      else setDropoffSuggestions(results)
+    debounceRef.current = setTimeout(() => {
+      if (!autocompleteRef.current) return
+
+      autocompleteRef.current.getPlacePredictions(
+        { input: query, componentRestrictions: { country: "us" } },
+        (predictions, status) => {
+          if (status === "OK" && predictions) {
+            if (field === "pickup") setPickupSuggestions(predictions)
+            else setDropoffSuggestions(predictions)
+          }
+        }
+      )
     }, 300)
   }, [])
 
   // Select suggestion
-  const handleSelectSuggestion = (suggestion: { address: string; lat: number; lng: number }, field: "pickup" | "dropoff") => {
-    if (field === "pickup") {
-      setPickupAddress(suggestion.address)
-      setPickupCoords({ lat: suggestion.lat, lng: suggestion.lng })
-      setPickupSuggestions([])
-      onPickupSelect?.(suggestion.lat, suggestion.lng, suggestion.address)
-    } else {
-      setDropoffAddress(suggestion.address)
-      setDropoffCoords({ lat: suggestion.lat, lng: suggestion.lng })
-      setDropoffSuggestions([])
-      onDropoffSelect?.(suggestion.lat, suggestion.lng, suggestion.address)
-    }
-    setActiveField(null)
+  const handleSelectSuggestion = (prediction: any, field: "pickup" | "dropoff") => {
+    if (!placesServiceRef.current || !mapInstanceRef.current) return
+
+    placesServiceRef.current.getDetails(
+      { placeId: prediction.place_id, fields: ["geometry", "formatted_address"] },
+      (place, status) => {
+        if (status === "OK" && place?.geometry?.location) {
+          const coords = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          }
+          const address = place.formatted_address || ""
+
+          if (field === "pickup") {
+            setPickupAddress(address)
+            setPickupCoords(coords)
+            setPickupSuggestions([])
+            onPickupSelect?.(coords.lat, coords.lng, address)
+            pickupMarkerRef.current?.setPosition(coords)
+            mapInstanceRef.current?.panTo(coords)
+
+            if (dropoffCoords) {
+              drawRoute(coords, dropoffCoords)
+            }
+          } else {
+            setDropoffAddress(address)
+            setDropoffCoords(coords)
+            setDropoffSuggestions([])
+            onDropoffSelect?.(coords.lat, coords.lng, address)
+
+            if (dropoffMarkerRef.current) {
+              dropoffMarkerRef.current.setPosition(coords)
+            } else {
+              dropoffMarkerRef.current = new window.google.maps.Marker({
+                position: coords,
+                map: mapInstanceRef.current,
+                title: "Dropoff",
+                icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+              })
+            }
+
+            if (pickupCoords) {
+              drawRoute(pickupCoords, coords)
+            }
+          }
+
+          setActiveField(null)
+        }
+      }
+    )
+  }
+
+  const drawRoute = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
+    if (!directionsRendererRef.current) return
+
+    const directionsService = new google.maps.DirectionsService()
+    directionsService.route(
+      {
+        origin: new google.maps.LatLng(from.lat, from.lng),
+        destination: new google.maps.LatLng(to.lat, to.lng),
+        travelMode: google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === "OK" && result) {
+          directionsRendererRef.current?.setDirections(result)
+        }
+      }
+    )
   }
 
   // Locate me
@@ -113,10 +256,19 @@ export default function BookingMap({
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        const address = await reverseGeocode(coords.lat, coords.lng)
-        setPickupAddress(address)
         setPickupCoords(coords)
-        onPickupSelect?.(coords.lat, coords.lng, address)
+
+        if (window.google?.maps) {
+          const geocoder = new window.google.maps.Geocoder()
+          geocoder.geocode({ location: coords }, (results, status) => {
+            if (status === "OK" && results?.[0]) {
+              const address = results[0].formatted_address
+              setPickupAddress(address)
+              onPickupSelect?.(coords.lat, coords.lng, address)
+            }
+          })
+        }
+
         setIsLocating(false)
       },
       () => setIsLocating(false)
@@ -141,7 +293,13 @@ export default function BookingMap({
             className="flex-1 bg-transparent outline-none text-sm"
           />
           {pickupAddress && (
-            <button onClick={() => { setPickupAddress(""); setPickupCoords(null); setPickupSuggestions([]) }}>
+            <button
+              onClick={() => {
+                setPickupAddress("")
+                setPickupCoords(null)
+                setPickupSuggestions([])
+              }}
+            >
               <X className="w-4 h-4 text-gray-400" />
             </button>
           )}
@@ -149,9 +307,16 @@ export default function BookingMap({
         {activeField === "pickup" && pickupSuggestions.length > 0 && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
             {pickupSuggestions.map((s, i) => (
-              <button key={i} onClick={() => handleSelectSuggestion(s, "pickup")} className="w-full flex items-center gap-2 p-3 hover:bg-gray-50 text-left text-sm">
+              <button
+                key={i}
+                onClick={() => handleSelectSuggestion(s, "pickup")}
+                className="w-full flex items-center gap-2 p-3 hover:bg-gray-50 text-left text-sm border-b last:border-0"
+              >
                 <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="truncate">{s.address}</span>
+                <div>
+                  <div className="font-medium">{s.structured_formatting.main_text}</div>
+                  <div className="text-xs text-gray-500">{s.structured_formatting.secondary_text}</div>
+                </div>
               </button>
             ))}
           </div>
@@ -174,7 +339,13 @@ export default function BookingMap({
             className="flex-1 bg-transparent outline-none text-sm"
           />
           {dropoffAddress && (
-            <button onClick={() => { setDropoffAddress(""); setDropoffCoords(null); setDropoffSuggestions([]) }}>
+            <button
+              onClick={() => {
+                setDropoffAddress("")
+                setDropoffCoords(null)
+                setDropoffSuggestions([])
+              }}
+            >
               <X className="w-4 h-4 text-gray-400" />
             </button>
           )}
@@ -182,9 +353,16 @@ export default function BookingMap({
         {activeField === "dropoff" && dropoffSuggestions.length > 0 && (
           <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-y-auto">
             {dropoffSuggestions.map((s, i) => (
-              <button key={i} onClick={() => handleSelectSuggestion(s, "dropoff")} className="w-full flex items-center gap-2 p-3 hover:bg-gray-50 text-left text-sm">
+              <button
+                key={i}
+                onClick={() => handleSelectSuggestion(s, "dropoff")}
+                className="w-full flex items-center gap-2 p-3 hover:bg-gray-50 text-left text-sm border-b last:border-0"
+              >
                 <MapPin className="w-4 h-4 text-gray-400" />
-                <span className="truncate">{s.address}</span>
+                <div>
+                  <div className="font-medium">{s.structured_formatting.main_text}</div>
+                  <div className="text-xs text-gray-500">{s.structured_formatting.secondary_text}</div>
+                </div>
               </button>
             ))}
           </div>
@@ -206,15 +384,8 @@ export default function BookingMap({
       )}
 
       {/* Map */}
-      <div style={{ height }} className="rounded-lg overflow-hidden border">
-        <LeafletMapInner
-          pickupLat={pickupCoords?.lat || DEFAULT_CENTER.lat}
-          pickupLng={pickupCoords?.lng || DEFAULT_CENTER.lng}
-          dropoffLat={dropoffCoords?.lat}
-          dropoffLng={dropoffCoords?.lng}
-          pickupAddress={pickupAddress}
-          dropoffAddress={dropoffAddress}
-        />
+      <div style={{ height }} className="rounded-lg overflow-hidden border border-gray-200">
+        <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       </div>
     </div>
   )

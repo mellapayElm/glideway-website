@@ -2,7 +2,7 @@
 let loadPromise: Promise<void> | null = null
 let isLoaded = false
 
-const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyAc7vlAT_grULZzlCdRB_LfdANiOt9mDP4"
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "AIzaSyCH4JRnP4zS-dSKAcDwtaz0hREGExtHOuo"
 
 export function loadGoogleMaps(): Promise<void> {
   // Already loaded

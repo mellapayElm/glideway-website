@@ -10,7 +10,7 @@ interface BookingMapPanelProps {
   dropoffCoords?: { lat: number; lng: number }
 }
 
-export default function BookingMapPanel({
+export function BookingMapPanel({
   pickupCoords,
   dropoffCoords,
 }: BookingMapPanelProps) {

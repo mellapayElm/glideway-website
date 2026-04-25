@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { MapPin, Navigation, Loader2, X, Locate } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 interface BookingMapProps {
@@ -27,10 +25,6 @@ export default function BookingMap({
   const mapInstanceRef = useRef<google.maps.Map | null>(null)
   const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
   const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
-  const autocompleteRef = useRef<google.maps.places.AutocompleteService | null>(null)
-
   const [pickupAddress, setPickupAddress] = useState("")
   const [dropoffAddress, setDropoffAddress] = useState("")
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(pickup || null)
@@ -39,7 +33,6 @@ export default function BookingMap({
   const [dropoffSuggestions, setDropoffSuggestions] = useState<any[]>([])
   const [activeField, setActiveField] = useState<"pickup" | "dropoff" | null>(null)
   const [isLocating, setIsLocating] = useState(false)
-  const [distance, setDistance] = useState<number | null>(null)
 
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -49,7 +42,10 @@ export default function BookingMap({
       try {
         await loadGoogleMaps()
 
-        if (!mapRef.current || !window.google?.maps) return
+        if (!mapRef.current || !window.google?.maps) {
+          console.error("[v0] Google Maps not available")
+          return
+        }
 
         const center = pickupCoords || DEFAULT_CENTER
 
@@ -59,28 +55,9 @@ export default function BookingMap({
           disableDefaultUI: false,
           zoomControl: true,
           fullscreenControl: false,
-          mapTypeControl: false,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9c9c9" }] },
-          ],
         })
 
         mapInstanceRef.current = map
-        placesServiceRef.current = new window.google.maps.places.PlacesService(map)
-        autocompleteRef.current = new window.google.maps.places.AutocompleteService()
-
-        // Initialize directions renderer
-        directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          polylineOptions: {
-            strokeColor: "#FF9E1B",
-            strokeWeight: 5,
-          },
-        })
 
         // Add pickup marker
         pickupMarkerRef.current = new window.google.maps.Marker({
@@ -99,41 +76,38 @@ export default function BookingMap({
             icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
           })
 
-          // Draw route
-          drawRoute(center, dropoffCoords)
+          // Draw line
+          new window.google.maps.Polyline({
+            path: [center, dropoffCoords],
+            geodesic: true,
+            strokeColor: "#4285F4",
+            strokeOpacity: 0.7,
+            strokeWeight: 3,
+            map,
+          })
 
           // Fit bounds
           const bounds = new window.google.maps.LatLngBounds()
           bounds.extend(center)
           bounds.extend(dropoffCoords)
-          map.fitBounds(bounds, { top: 100, bottom: 100, left: 50, right: 50 })
+          map.fitBounds(bounds)
         }
       } catch (error) {
-        console.error("[v0] Failed to initialize map:", error)
+        console.error("[v0] Map initialization error:", error)
       }
     }
 
     initMap()
   }, [pickupCoords, dropoffCoords])
 
-  // Get initial location
+  // Get user location on load
   useEffect(() => {
     if (navigator.geolocation && !pickupCoords) {
       navigator.geolocation.getCurrentPosition(
-        async (pos) => {
+        (pos) => {
           const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
           setPickupCoords(coords)
-
-          // Reverse geocode
-          if (window.google?.maps) {
-            const geocoder = new window.google.maps.Geocoder()
-            geocoder.geocode({ location: coords }, (results, status) => {
-              if (status === "OK" && results?.[0]) {
-                setPickupAddress(results[0].formatted_address)
-                onPickupSelect?.(coords.lat, coords.lng, results[0].formatted_address)
-              }
-            })
-          }
+          onPickupSelect?.(coords.lat, coords.lng, "Current Location")
         },
         () => {
           setPickupCoords(DEFAULT_CENTER)
@@ -141,17 +115,6 @@ export default function BookingMap({
       )
     }
   }, [])
-
-  // Calculate distance
-  useEffect(() => {
-    if (pickupCoords && dropoffCoords && window.google?.maps) {
-      const dist = window.google.maps.geometry.spherical.computeDistanceBetween(
-        new window.google.maps.LatLng(pickupCoords.lat, pickupCoords.lng),
-        new window.google.maps.LatLng(dropoffCoords.lat, dropoffCoords.lng)
-      )
-      setDistance(dist / 1609.34) // Convert to miles
-    }
-  }, [pickupCoords, dropoffCoords])
 
   // Search addresses
   const handleSearch = useCallback((query: string, field: "pickup" | "dropoff") => {
@@ -163,112 +126,88 @@ export default function BookingMap({
 
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    debounceRef.current = setTimeout(() => {
-      if (!autocompleteRef.current) return
+    debounceRef.current = setTimeout(async () => {
+      try {
+        await loadGoogleMaps()
+        if (!window.google?.maps) return
 
-      autocompleteRef.current.getPlacePredictions(
-        { input: query, componentRestrictions: { country: "us" } },
-        (predictions, status) => {
-          if (status === "OK" && predictions) {
-            if (field === "pickup") setPickupSuggestions(predictions)
-            else setDropoffSuggestions(predictions)
+        const service = new window.google.maps.places.AutocompleteService()
+        service.getPlacePredictions(
+          { input: query, componentRestrictions: { country: "us" } },
+          (predictions, status) => {
+            if (status === "OK" && predictions) {
+              if (field === "pickup") setPickupSuggestions(predictions)
+              else setDropoffSuggestions(predictions)
+            }
           }
-        }
-      )
+        )
+      } catch (error) {
+        console.error("[v0] Search error:", error)
+      }
     }, 300)
   }, [])
 
   // Select suggestion
-  const handleSelectSuggestion = (prediction: any, field: "pickup" | "dropoff") => {
-    if (!placesServiceRef.current || !mapInstanceRef.current) return
+  const handleSelectSuggestion = async (prediction: any, field: "pickup" | "dropoff") => {
+    try {
+      await loadGoogleMaps()
+      if (!window.google?.maps || !mapInstanceRef.current) return
 
-    placesServiceRef.current.getDetails(
-      { placeId: prediction.place_id, fields: ["geometry", "formatted_address"] },
-      (place, status) => {
-        if (status === "OK" && place?.geometry?.location) {
-          const coords = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-          }
-          const address = place.formatted_address || ""
-
-          if (field === "pickup") {
-            setPickupAddress(address)
-            setPickupCoords(coords)
-            setPickupSuggestions([])
-            onPickupSelect?.(coords.lat, coords.lng, address)
-            pickupMarkerRef.current?.setPosition(coords)
-            mapInstanceRef.current?.panTo(coords)
-
-            if (dropoffCoords) {
-              drawRoute(coords, dropoffCoords)
+      const service = new window.google.maps.places.PlacesService(mapInstanceRef.current)
+      service.getDetails(
+        { placeId: prediction.place_id, fields: ["geometry", "formatted_address"] },
+        (place, status) => {
+          if (status === "OK" && place?.geometry?.location) {
+            const coords = {
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
             }
-          } else {
-            setDropoffAddress(address)
-            setDropoffCoords(coords)
-            setDropoffSuggestions([])
-            onDropoffSelect?.(coords.lat, coords.lng, address)
+            const address = place.formatted_address || ""
 
-            if (dropoffMarkerRef.current) {
-              dropoffMarkerRef.current.setPosition(coords)
+            if (field === "pickup") {
+              setPickupAddress(address)
+              setPickupCoords(coords)
+              setPickupSuggestions([])
+              onPickupSelect?.(coords.lat, coords.lng, address)
+              pickupMarkerRef.current?.setPosition(coords)
+              mapInstanceRef.current?.panTo(coords)
             } else {
-              dropoffMarkerRef.current = new window.google.maps.Marker({
-                position: coords,
-                map: mapInstanceRef.current,
-                title: "Dropoff",
-                icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-              })
+              setDropoffAddress(address)
+              setDropoffCoords(coords)
+              setDropoffSuggestions([])
+              onDropoffSelect?.(coords.lat, coords.lng, address)
+
+              if (dropoffMarkerRef.current) {
+                dropoffMarkerRef.current.setPosition(coords)
+              } else {
+                dropoffMarkerRef.current = new window.google.maps.Marker({
+                  position: coords,
+                  map: mapInstanceRef.current,
+                  title: "Dropoff",
+                  icon: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+                })
+              }
             }
 
-            if (pickupCoords) {
-              drawRoute(pickupCoords, coords)
-            }
+            setActiveField(null)
           }
-
-          setActiveField(null)
         }
-      }
-    )
+      )
+    } catch (error) {
+      console.error("[v0] Selection error:", error)
+    }
   }
 
-  const drawRoute = (from: { lat: number; lng: number }, to: { lat: number; lng: number }) => {
-    if (!directionsRendererRef.current) return
-
-    const directionsService = new google.maps.DirectionsService()
-    directionsService.route(
-      {
-        origin: new google.maps.LatLng(from.lat, from.lng),
-        destination: new google.maps.LatLng(to.lat, to.lng),
-        travelMode: google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        if (status === "OK" && result) {
-          directionsRendererRef.current?.setDirections(result)
-        }
-      }
-    )
-  }
-
-  // Locate me
   const handleLocateMe = async () => {
     if (!navigator.geolocation) return
     setIsLocating(true)
+
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude }
         setPickupCoords(coords)
-
-        if (window.google?.maps) {
-          const geocoder = new window.google.maps.Geocoder()
-          geocoder.geocode({ location: coords }, (results, status) => {
-            if (status === "OK" && results?.[0]) {
-              const address = results[0].formatted_address
-              setPickupAddress(address)
-              onPickupSelect?.(coords.lat, coords.lng, address)
-            }
-          })
-        }
-
+        setPickupAddress("Current Location")
+        onPickupSelect?.(coords.lat, coords.lng, "Current Location")
         setIsLocating(false)
       },
       () => setIsLocating(false)
@@ -293,13 +232,7 @@ export default function BookingMap({
             className="flex-1 bg-transparent outline-none text-sm"
           />
           {pickupAddress && (
-            <button
-              onClick={() => {
-                setPickupAddress("")
-                setPickupCoords(null)
-                setPickupSuggestions([])
-              }}
-            >
+            <button onClick={() => setPickupAddress("")}>
               <X className="w-4 h-4 text-gray-400" />
             </button>
           )}
@@ -339,13 +272,7 @@ export default function BookingMap({
             className="flex-1 bg-transparent outline-none text-sm"
           />
           {dropoffAddress && (
-            <button
-              onClick={() => {
-                setDropoffAddress("")
-                setDropoffCoords(null)
-                setDropoffSuggestions([])
-              }}
-            >
+            <button onClick={() => setDropoffAddress("")}>
               <X className="w-4 h-4 text-gray-400" />
             </button>
           )}
@@ -370,18 +297,23 @@ export default function BookingMap({
       </div>
 
       {/* Locate Button */}
-      <Button onClick={handleLocateMe} disabled={isLocating} variant="outline" className="w-full">
-        <Locate className="w-4 h-4 mr-2" />
-        {isLocating ? "Getting location..." : "Use my location"}
-      </Button>
-
-      {/* Distance */}
-      {distance && (
-        <div className="flex items-center justify-center gap-2 p-2 bg-lime-50 border border-lime-200 rounded-lg">
-          <Navigation className="w-4 h-4 text-lime-600" />
-          <span className="text-sm font-medium text-lime-700">{distance.toFixed(1)} miles</span>
-        </div>
-      )}
+      <button
+        onClick={handleLocateMe}
+        disabled={isLocating}
+        className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium disabled:opacity-50"
+      >
+        {isLocating ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Getting location...
+          </>
+        ) : (
+          <>
+            <Locate className="w-4 h-4" />
+            Use my location
+          </>
+        )}
+      </button>
 
       {/* Map */}
       <div style={{ height }} className="rounded-lg overflow-hidden border border-gray-200">

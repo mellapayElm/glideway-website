@@ -193,15 +193,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     setActiveRide(null)
     setShowRideOptions(false)
     setDropoff("")
-    
-    // Clear route and dropoff marker
-    if (routeRef.current) {
-      routeRef.current.setDirections({ routes: [] } as google.maps.DirectionsResult)
-    }
-    if (dropoffMarkerRef.current) {
-      dropoffMarkerRef.current.setMap(null)
-      dropoffMarkerRef.current = null
-    }
+    setDropoffLocation(null)
   }
 
   // Render active ride tracking

@@ -1,19 +1,14 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, Calendar, Users, MapPin, Clock, Navigation, Plus, X } from "lucide-react"
+import { Search, MapPin, Clock, Navigation, Plus, X, Home, Briefcase } from "lucide-react"
 import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 const RIDE_TYPES = [
-  { id: "economy", name: "Economy", price: "$26.96", time: "in 8 min", seats: 4, description: "Affordable rides" },
-  { id: "comfort", name: "Comfort", price: "$29.96", time: "in 7 min", seats: 4, description: "Newer cars" },
-  { id: "xl", name: "XL", price: "$35.96", time: "in 10 min", seats: 6, description: "Fits 6 passengers" },
-  { id: "premium", name: "Premium", price: "$45.96", time: "in 6 min", seats: 4, description: "High-end vehicles" },
-]
-
-const SHORTCUTS = [
-  { id: "work", icon: "briefcase", label: "Work", address: "" },
-  { id: "home", icon: "home", label: "Home", address: "" },
+  { id: "economy", name: "Economy", price: "$12.50", time: "3 min away", seats: 4 },
+  { id: "comfort", name: "Comfort", price: "$18.75", time: "5 min away", seats: 4 },
+  { id: "xl", name: "XL", price: "$25.00", time: "7 min away", seats: 6 },
+  { id: "premium", name: "Premium", price: "$35.00", time: "4 min away", seats: 4 },
 ]
 
 interface PlaceSuggestion {
@@ -48,8 +43,7 @@ interface HomeScreenProps {
 }
 
 export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTracking }: HomeScreenProps) {
-  const [greeting, setGreeting] = useState("Good Morning")
-  const [pickup, setPickup] = useState("Current location")
+  const [pickup, setPickup] = useState("Pickup location")
   const [dropoff, setDropoff] = useState("")
   const [selectedRide, setSelectedRide] = useState("economy")
   const [showLocationSearch, setShowLocationSearch] = useState(false)
@@ -58,21 +52,10 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [showRideOptions, setShowRideOptions] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [dropoffLocation, setDropoffLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [savedShortcuts, setSavedShortcuts] = useState(SHORTCUTS)
-  const [estimatedCost, setEstimatedCost] = useState("$26.96")
-  const [estimatedTime, setEstimatedTime] = useState("8 min")
+  const [mapRef, setMapRef] = useState<HTMLDivElement | null>(null)
+  const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null)
   
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Set greeting based on time of day
-  useEffect(() => {
-    const hour = new Date().getHours()
-    if (hour < 12) setGreeting("Good Morning")
-    else if (hour < 17) setGreeting("Good Afternoon")
-    else setGreeting("Good Evening")
-  }, [])
 
   // Get user location
   useEffect(() => {
@@ -85,7 +68,6 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
           })
         },
         () => {
-          // Default to Colorado Springs on error
           setUserLocation({ lat: 38.8339, lng: -104.8214 })
         }
       )
@@ -94,55 +76,77 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     }
   }, [])
 
-  // Initialize map and reverse geocode user location
+  // Initialize Google Maps
   useEffect(() => {
-    const initializeUserLocation = async () => {
-      if (userLocation && !pickup) {
-        setPickupLocation(userLocation)
-        // Reverse geocode to get address using Google Maps
-        try {
-          await loadGoogleMaps()
-          if (window.google?.maps) {
-            const geocoder = new window.google.maps.Geocoder()
-            geocoder.geocode({ location: userLocation }, (results, status) => {
-              if (status === "OK" && results?.[0]) {
-                setPickup(results[0].formatted_address)
-              } else {
-                setPickup("Current location")
-              }
-            })
+    const initMap = async () => {
+      if (!mapRef || !userLocation) return
+      
+      try {
+        await loadGoogleMaps()
+        if (!window.google?.maps) return
+
+        const map = new window.google.maps.Map(mapRef, {
+          center: userLocation,
+          zoom: 15,
+          disableDefaultUI: true,
+          zoomControl: true,
+          styles: [
+            { elementType: "geometry", stylers: [{ color: "#f5f5f5" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9e4f6" }] },
+          ],
+        })
+
+        new window.google.maps.Marker({
+          position: userLocation,
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#22c55e",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+        })
+
+        setMapInstance(map)
+
+        // Reverse geocode for address
+        const geocoder = new window.google.maps.Geocoder()
+        geocoder.geocode({ location: userLocation }, (results, status) => {
+          if (status === "OK" && results?.[0]) {
+            setPickup(results[0].formatted_address.split(",")[0])
           }
-        } catch (error) {
-          console.error("[v0] Reverse geocoding failed:", error)
-          setPickup("Current location")
-        }
+        })
+      } catch (error) {
+        console.error("[v0] Failed to initialize Google Maps:", error)
       }
     }
-    initializeUserLocation()
-  }, [userLocation, pickup])
 
-  // Search for addresses using Google Maps Places API
+    initMap()
+  }, [mapRef, userLocation])
+
+  // Search places
   const searchPlaces = useCallback(async (query: string) => {
     if (query.length < 2) {
       setSuggestions([])
       return
     }
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {
       try {
         await loadGoogleMaps()
         if (!window.google?.maps) return
 
-        const autocompleteService = new window.google.maps.places.AutocompleteService()
-        autocompleteService.getPlacePredictions(
+        const service = new window.google.maps.places.AutocompleteService()
+        service.getPlacePredictions(
           { input: query, componentRestrictions: { country: "us" } },
           (predictions, status) => {
             if (status === "OK" && predictions) {
-              // Store predictions temporarily, we'll get details on select
               setSuggestions(
                 predictions.map((p) => ({
                   placeId: p.place_id,
@@ -155,102 +159,37 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
           }
         )
       } catch (error) {
-        console.error("[v0] Places search failed:", error)
+        console.error("[v0] Search failed:", error)
       }
     }, 300)
   }, [])
 
   // Handle place selection
   const handleSelectPlace = useCallback((suggestion: PlaceSuggestion) => {
-    // Get place details from Google Maps
-    const getPlaceDetails = async () => {
-      try {
-        await loadGoogleMaps()
-        if (!window.google?.maps) return
-
-        const placesService = new window.google.maps.places.PlacesService(
-          document.createElement("div")
-        )
-        placesService.getDetails(
-          { placeId: suggestion.placeId, fields: ["geometry", "formatted_address"] },
-          (place, status) => {
-            if (status === "OK" && place?.geometry?.location) {
-              const coords = {
-                lat: place.geometry.location.lat(),
-                lng: place.geometry.location.lng(),
-              }
-              const address = place.formatted_address || suggestion.description
-
-              if (searchType === "pickup") {
-                setPickup(address)
-                setPickupLocation(coords)
-              } else {
-                setDropoff(address)
-                setDropoffLocation(coords)
-
-                // Calculate distance and cost
-                if (pickupLocation) {
-                  const distance = window.google.maps.geometry.spherical.computeDistanceBetween(
-                    new window.google.maps.LatLng(pickupLocation.lat, pickupLocation.lng),
-                    new window.google.maps.LatLng(coords.lat, coords.lng)
-                  )
-                  const distanceInMiles = distance / 1609.34
-                  // Estimate: $2.50 base + $1.50 per mile
-                  const estimatedFare = 2.5 + distanceInMiles * 1.5
-                  setEstimatedCost(`$${estimatedFare.toFixed(2)}`)
-                  setEstimatedTime(`${Math.ceil(distanceInMiles * 2)} min`)
-                }
-
-                setShowRideOptions(true)
-              }
-
-              setShowLocationSearch(false)
-              setSuggestions([])
-              setSearchQuery("")
-            }
-          }
-        )
-      } catch (error) {
-        console.error("[v0] Failed to get place details:", error)
-      }
+    if (searchType === "pickup") {
+      setPickup(suggestion.mainText)
+    } else {
+      setDropoff(suggestion.mainText)
+      setShowRideOptions(true)
     }
+    setShowLocationSearch(false)
+    setSuggestions([])
+    setSearchQuery("")
+  }, [searchType])
 
-    getPlaceDetails()
-  }, [searchType, pickupLocation])
-
-  // Handle ride booking
+  // Book ride
   const handleBookRide = () => {
     if (!pickup || !dropoff) return
-
-    const rideType = RIDE_TYPES.find(r => r.id === selectedRide)
-    const fare = parseFloat(estimatedCost.replace("$", ""))
-
     setIsTracking(true)
+    const ride = RIDE_TYPES.find(r => r.id === selectedRide)
     setActiveRide({
-      id: `ride-${Date.now()}`,
+      id: `GW-${Date.now()}`,
       status: "searching",
       pickup,
       dropoff,
-      fare,
-      eta: 5,
+      fare: parseFloat(ride?.price.replace("$", "") || "12.50"),
+      eta: 4,
     })
-
-    // Simulate finding driver
-    setTimeout(() => {
-      setActiveRide(prev => prev ? {
-        ...prev,
-        status: "driver_assigned",
-        driver: {
-          name: "Michael Johnson",
-          rating: 4.9,
-          photo: "/driver.jpg",
-          vehicle: "Toyota Camry (White)",
-          plate: "ABC-1234",
-          phone: "+1 (555) 123-4567",
-        },
-        eta: 4,
-      } : null)
-    }, 3000)
   }
 
   // Cancel ride
@@ -259,77 +198,58 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     setActiveRide(null)
     setShowRideOptions(false)
     setDropoff("")
-    setDropoffLocation(null)
   }
 
-  // Render active ride tracking
+  // Active ride tracking view
   if (isTracking && activeRide) {
     return (
-      <div className="flex flex-col h-full bg-gray-950">
-        {/* Map with Fallback */}
-        <div className="flex-1 relative">
-          {/* Fallback background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900">
-            <div className="absolute inset-0 opacity-30">
-              <svg className="w-full h-full" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice">
-                <defs>
-                  <pattern id="trackingGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1f2937" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#trackingGrid)" />
-                <path d="M 50 150 Q 150 100 200 200 T 350 250" stroke="#7CFF3A" strokeWidth="4" fill="none" strokeDasharray="10,5"/>
-                <circle cx="80" cy="140" r="10" fill="#7CFF3A"/>
-                <circle cx="320" cy="260" r="10" fill="#ef4444"/>
-              </svg>
-            </div>
-          </div>
-          {/* Google Map container */}
-          <div id="glideway-mobile-map" style={{ width: "100%", height: "100%", minHeight: "400px" }} />
+      <div className="flex flex-col h-full bg-white">
+        {/* Map */}
+        <div className="flex-1 relative bg-gray-100">
+          <div ref={setMapRef} className="absolute inset-0" />
         </div>
 
-        {/* Ride Status Card */}
-        <div className="bg-gray-900 border-t border-gray-800 rounded-t-3xl -mt-6 relative z-10">
-          <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mt-3" />
+        {/* Ride Card */}
+        <div className="bg-white border-t border-gray-200 rounded-t-3xl -mt-6 relative z-10 shadow-lg">
+          <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
           
-          <div className="p-4">
+          <div className="p-5">
             <div className="text-center mb-4">
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-lg font-bold text-gray-900">
                 {activeRide.status === "searching" ? "Finding your driver..." : "Driver is on the way!"}
               </h3>
-              <p className="text-lime-400 font-medium">ETA: {activeRide.eta} minutes</p>
+              <p className="text-green-600 font-medium">ETA: {activeRide.eta} minutes</p>
             </div>
 
             {activeRide.driver && (
-              <div className="flex items-center gap-4 bg-gray-800 rounded-xl p-4 mb-4">
-                <div className="w-14 h-14 bg-gray-700 rounded-full flex items-center justify-center text-xl font-bold text-white">
+              <div className="flex items-center gap-4 bg-gray-50 rounded-xl p-4 mb-4">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center text-xl font-bold text-green-600">
                   MJ
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-white">{activeRide.driver.name}</p>
-                  <p className="text-sm text-gray-400">{activeRide.driver.vehicle}</p>
-                  <p className="text-lime-400 text-sm">Rating: {activeRide.driver.rating}</p>
+                  <p className="font-semibold text-gray-900">{activeRide.driver.name}</p>
+                  <p className="text-sm text-gray-500">{activeRide.driver.vehicle}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold text-white">{activeRide.driver.plate}</p>
+                  <p className="font-bold text-gray-900">{activeRide.driver.plate}</p>
                 </div>
               </div>
             )}
 
             <div className="space-y-3 mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-lime-400 rounded-full" />
-                <p className="text-sm text-gray-300 truncate flex-1">{activeRide.pickup}</p>
+                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                <p className="text-sm text-gray-700 truncate flex-1">{activeRide.pickup}</p>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-red-400 rounded-full" />
-                <p className="text-sm text-gray-300 truncate flex-1">{activeRide.dropoff}</p>
+                <div className="w-3 h-3 bg-red-500 rounded-full" />
+                <p className="text-sm text-gray-700 truncate flex-1">{activeRide.dropoff}</p>
               </div>
             </div>
 
             <button 
               onClick={handleCancelRide}
-              className="w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 rounded-xl transition-colors"
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors"
             >
               Cancel Ride
             </button>
@@ -340,237 +260,121 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   }
 
   return (
-    <div className="flex flex-col h-full bg-gray-950 relative overflow-hidden">
-      {/* Map Background / Fallback */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-950 to-gray-900">
-        {/* Decorative map-like pattern as fallback */}
-        <div className="absolute inset-0 opacity-30">
-          <svg className="w-full h-full" viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
-            {/* Grid lines to simulate map streets */}
-            <defs>
-              <pattern id="mapGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1f2937" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#mapGrid)" />
-            {/* Simulated roads */}
-            <path d="M 0 200 Q 100 180 200 200 T 400 200" stroke="#374151" strokeWidth="8" fill="none"/>
-            <path d="M 150 0 Q 170 150 150 300 T 170 600" stroke="#374151" strokeWidth="6" fill="none"/>
-            <path d="M 50 400 Q 200 350 400 420" stroke="#374151" strokeWidth="4" fill="none"/>
-            {/* User location indicator */}
-            <circle cx="200" cy="250" r="12" fill="#7CFF3A" opacity="0.8"/>
-            <circle cx="200" cy="250" r="24" fill="#7CFF3A" opacity="0.2"/>
-            <circle cx="200" cy="250" r="40" fill="#7CFF3A" opacity="0.1"/>
-          </svg>
-        </div>
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-gray-950/80 via-transparent to-gray-950/90" />
+    <div className="flex flex-col h-full bg-white relative">
+      {/* Google Map */}
+      <div className="h-[45%] relative bg-gray-100">
+        <div ref={setMapRef} className="absolute inset-0" />
       </div>
-      
-      {/* Google Map container */}
-      <div id="glideway-mobile-map-main" style={{ width: "100%", height: "100%", minHeight: "400px" }} />
 
-      {/* Content Overlay */}
-      <div className="relative z-[5] flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4">
-          <h1 className="text-3xl font-bold text-white mb-4">{greeting}</h1>
+      {/* Bottom Sheet */}
+      <div className="flex-1 bg-white rounded-t-3xl -mt-6 relative z-10 shadow-lg overflow-hidden">
+        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mt-3" />
+        
+        <div className="p-5 overflow-y-auto h-full pb-20">
+          {/* Where to? Header */}
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Where to?</h2>
           
-          {/* Search Box */}
-          <button
-            onClick={() => {
-              setSearchType("dropoff")
-              setShowLocationSearch(true)
-            }}
-            className="w-full bg-gray-800/90 backdrop-blur-sm border border-gray-700 rounded-xl px-4 py-4 flex items-center gap-3 hover:border-lime-400/50 transition-colors"
-          >
-            <Search className="w-5 h-5 text-gray-400" />
-            <span className="text-gray-400 text-left flex-1">
-              {dropoff || "Where are you going?"}
-            </span>
-          </button>
-        </div>
+          {/* Quick Place Buttons */}
+          <div className="flex gap-2 mb-6">
+            <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2 transition-colors">
+              <Home className="w-4 h-4 text-amber-500" />
+              <span className="text-sm font-medium text-gray-700">Home</span>
+            </button>
+            <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2 transition-colors">
+              <Briefcase className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-medium text-gray-700">Work</span>
+            </button>
+            <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-full px-4 py-2 transition-colors">
+              <Plus className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Add</span>
+            </button>
+          </div>
 
-        {/* Spacer */}
-        <div className="flex-1" />
+          {/* Pickup Location */}
+          <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 mb-3">
+            <div className="w-3 h-3 bg-green-500 rounded-full" />
+            <button 
+              onClick={() => {
+                setSearchType("pickup")
+                setShowLocationSearch(true)
+              }}
+              className="flex-1 text-left text-gray-700"
+            >
+              {pickup}
+            </button>
+            <Navigation className="w-5 h-5 text-green-500" />
+          </div>
 
-        {/* Bottom Sheet - Booking Form */}
-        <div className={`bg-gray-900/95 backdrop-blur-sm border-t border-gray-800 rounded-t-3xl transition-all duration-300 ${showRideOptions ? "max-h-[75vh]" : "max-h-[55vh]"}`}>
-          <div className="w-12 h-1 bg-gray-700 rounded-full mx-auto mt-3" />
-          
-          <div className="p-4 overflow-y-auto max-h-[calc(100%-20px)]">
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-white mb-6">Book Your Ride</h2>
-            
-            {/* Pickup Location Section */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Pickup Location</label>
-              <div className="flex gap-2 mb-2">
+          {/* Dropoff Location */}
+          <div className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3 mb-6">
+            <div className="w-3 h-3 bg-red-500 rounded-full" />
+            <button 
+              onClick={() => {
+                setSearchType("dropoff")
+                setShowLocationSearch(true)
+              }}
+              className="flex-1 text-left text-gray-400"
+            >
+              {dropoff || "Enter destination address"}
+            </button>
+          </div>
+
+          {/* Ride Now / Schedule Buttons */}
+          <div className="flex gap-3 mb-6">
+            <button 
+              onClick={() => dropoff && setShowRideOptions(true)}
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              Ride Now
+            </button>
+            <button className="flex-1 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium py-3 rounded-xl transition-colors">
+              Schedule
+            </button>
+          </div>
+
+          {/* Ride Options */}
+          {showRideOptions && (
+            <div className="space-y-3">
+              {RIDE_TYPES.map((ride) => (
                 <button
-                  onClick={() => {
-                    if (userLocation) {
-                      setPickupLocation(userLocation)
-                      reverseGeocode(userLocation.lat, userLocation.lng).then((addr) => {
-                        setPickup(addr)
-                      })
-                    }
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 bg-lime-400/10 hover:bg-lime-400/20 border border-lime-400/30 rounded-lg px-3 py-2 transition-colors"
+                  key={ride.id}
+                  onClick={() => setSelectedRide(ride.id)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                    selectedRide === ride.id
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
                 >
-                  <Navigation className="w-4 h-4 text-lime-400" />
-                  <span className="text-sm font-medium text-lime-400">Use Current Location</span>
-                </button>
-              </div>
-              <div className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-gray-300 text-sm">
-                {pickup || "Your location"}
-              </div>
-            </div>
-            
-            {/* Dropoff Location Section */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-400 mb-2 block">Dropoff Location</label>
-              <button
-                onClick={() => {
-                  setSearchType("dropoff")
-                  setShowLocationSearch(true)
-                }}
-                className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 rounded-lg px-4 py-3 flex items-center gap-3 transition-colors"
-              >
-                <MapPin className="w-5 h-5 text-gray-400" />
-                <span className="text-gray-400 text-left flex-1">
-                  {dropoff || "Enter destination"}
-                </span>
-              </button>
-            </div>
-            
-            {/* When do you need a ride? */}
-            <div className="mb-6">
-              <label className="text-sm font-medium text-gray-400 mb-3 block">When do you need a ride?</label>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {}}
-                  className="flex-1 bg-lime-400 hover:bg-lime-500 text-gray-950 font-medium py-3 rounded-lg transition-colors"
-                >
-                  Now
-                </button>
-                <button
-                  onClick={() => {}}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-                >
-                  <Clock className="w-4 h-4" />
-                  Schedule Later
-                </button>
-              </div>
-            </div>
-            
-            {/* Saved Places Section */}
-            {!showRideOptions && (
-              <>
-                <p className="text-xs font-medium text-gray-500 mb-2">SAVED PLACES</p>
-                <div className="space-y-2 mb-4">
-                  {savedShortcuts.map((shortcut) => (
-                <button
-                  key={shortcut.id}
-                  onClick={() => {
-                    setDropoff(shortcut.address || shortcut.label)
-                    setDropoffLocation(shortcut.coordinates || undefined)
-                    if (pickupLocation && shortcut.coordinates) {
-                      const distance = calculateDistance(
-                        pickupLocation.lat,
-                        pickupLocation.lng,
-                        shortcut.coordinates.lat,
-                        shortcut.coordinates.lng
-                      )
-                      const cost = estimateRideCost(distance, selectedRide)
-                      setEstimatedCost(`$${cost.toFixed(2)}`)
-                      setEstimatedTime(`${Math.ceil(distance * 2)} min`)
-                    }
-                    setShowRideOptions(true)
-                  }}
-                  className="w-full flex items-center gap-4 bg-gray-800/50 hover:bg-gray-700/60 border border-gray-700 rounded-xl px-4 py-3 transition-all"
-                >
-                  <div className="w-10 h-10 bg-gray-700 rounded-xl flex items-center justify-center flex-shrink-0">
-                    {shortcut.icon === "briefcase" ? (
-                      <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-6 0h-4V5h4v2z"/>
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-lime-400" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                      </svg>
-                    )}
+                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                    {ride.id === "economy" ? "🚗" : ride.id === "comfort" ? "🚙" : ride.id === "xl" ? "🚐" : "✨"}
                   </div>
                   <div className="flex-1 text-left">
-                    <p className="font-medium text-white text-sm">{shortcut.label}</p>
-                    <p className="text-xs text-gray-500">{shortcut.address || "Add shortcut"}</p>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-900">{ride.name}</span>
+                      <span className="text-xs text-gray-500">{ride.seats} seats</span>
+                    </div>
+                    <p className="text-sm text-gray-500">{ride.time}</p>
                   </div>
-                  {!shortcut.address && <Plus className="w-5 h-5 text-gray-500 flex-shrink-0" />}
+                  <span className="font-bold text-gray-900">{ride.price}</span>
                 </button>
               ))}
-                </div>
-              </>
-            )}
 
-            {/* Ride Options */}
-            {showRideOptions && (
-              <>
-                <div className="flex items-center gap-4 my-4">
-                  <div className="flex-1 h-px bg-gray-800" />
-                  <span className="text-gray-500 text-xs font-medium">SELECT A RIDE</span>
-                  <div className="flex-1 h-px bg-gray-800" />
-                </div>
-
-                <div className="space-y-2 mb-4">
-                  {RIDE_TYPES.map((ride) => (
-                    <button
-                      key={ride.id}
-                      onClick={() => setSelectedRide(ride.id)}
-                      className={`w-full rounded-xl p-3 transition-all border ${
-                        selectedRide === ride.id
-                          ? "bg-lime-400/20 border-lime-400"
-                          : "bg-gray-800/50 border-gray-700 hover:bg-gray-700/60"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-14 h-10 bg-gray-700 rounded-lg flex items-center justify-center text-2xl">
-                          {ride.id === "economy" ? "🚗" : ride.id === "comfort" ? "🚙" : ride.id === "xl" ? "🚐" : "✨"}
-                        </div>
-                        <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-semibold text-white">{ride.name}</h3>
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                              <Users className="w-3 h-3" />{ride.seats}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-gray-400">
-                            <Clock className="w-3 h-3" />
-                            <span>{ride.time}</span>
-                          </div>
-                        </div>
-                        <div className="font-bold text-white text-lg">{ride.price}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Confirm Button */}
-                <button 
-                  onClick={handleBookRide}
-                  className="w-full bg-lime-400 hover:bg-lime-500 text-gray-950 font-bold py-4 rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Confirm {RIDE_TYPES.find(r => r.id === selectedRide)?.name}
-                </button>
-              </>
-            )}
-          </div>
+              <button 
+                onClick={handleBookRide}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-xl transition-colors mt-4"
+              >
+                Confirm {RIDE_TYPES.find(r => r.id === selectedRide)?.name}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Location Search Modal */}
       {showLocationSearch && (
-        <div className="absolute inset-0 bg-gray-950 z-50 flex flex-col">
+        <div className="absolute inset-0 bg-white z-50 flex flex-col">
           {/* Header */}
-          <div className="p-4 border-b border-gray-800">
+          <div className="p-4 border-b border-gray-200">
             <div className="flex items-center gap-3 mb-4">
               <button
                 onClick={() => {
@@ -578,110 +382,49 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
                   setSuggestions([])
                   setSearchQuery("")
                 }}
-                className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center"
+                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-gray-600" />
               </button>
-              <h2 className="text-lg font-bold text-white">
+              <h2 className="text-lg font-bold text-gray-900">
                 {searchType === "pickup" ? "Set pickup location" : "Where to?"}
               </h2>
             </div>
 
-            {/* Location inputs */}
-            <div className="space-y-2">
-              <button
-                onClick={() => setSearchType("pickup")}
-                className={`w-full flex items-center gap-3 bg-gray-800 rounded-xl px-4 py-3 border ${searchType === "pickup" ? "border-lime-400" : "border-transparent"}`}
-              >
-                <div className="w-3 h-3 bg-lime-400 rounded-full" />
-                <span className="text-gray-300 text-left flex-1 truncate">{pickup || "Current location"}</span>
-              </button>
-              
-              <div className={`flex items-center gap-3 bg-gray-800 rounded-xl px-4 py-3 border ${searchType === "dropoff" ? "border-lime-400" : "border-transparent"}`}>
-                <div className="w-3 h-3 bg-red-400 rounded-full" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setSearchType("dropoff")
-                    searchPlaces(e.target.value)
-                  }}
-                  placeholder="Enter destination"
-                  className="flex-1 bg-transparent text-white placeholder-gray-500 focus:outline-none"
-                  autoFocus
-                />
-              </div>
+            {/* Search Input */}
+            <div className="flex items-center gap-3 bg-gray-100 rounded-xl px-4 py-3">
+              <Search className="w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value)
+                  searchPlaces(e.target.value)
+                }}
+                placeholder="Search for a place"
+                className="flex-1 bg-transparent text-gray-900 placeholder-gray-500 focus:outline-none"
+                autoFocus
+              />
             </div>
           </div>
 
           {/* Suggestions */}
           <div className="flex-1 overflow-y-auto">
-            {suggestions.length > 0 ? (
-              <div className="p-2">
-                {suggestions.map((suggestion) => (
-                  <button
-                    key={suggestion.placeId}
-                    onClick={() => handleSelectPlace(suggestion)}
-                    className="w-full flex items-center gap-4 p-3 hover:bg-gray-800 rounded-xl transition-colors"
-                  >
-                    <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                      <MapPin className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-white">{suggestion.mainText}</p>
-                      <p className="text-sm text-gray-500">{suggestion.secondaryText}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : searchQuery.length < 2 ? (
-              <div className="p-4">
-                <p className="text-sm text-gray-500 mb-4">Saved places</p>
-                {savedShortcuts.map((shortcut) => (
-                  <button
-                    key={shortcut.id}
-                    className="w-full flex items-center gap-4 p-3 hover:bg-gray-800 rounded-xl transition-colors"
-                  >
-                    <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center">
-                      {shortcut.icon === "briefcase" ? (
-                        <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M20 7h-4V5c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V9c0-1.1-.9-2-2-2zm-6 0h-4V5h4v2z"/>
-                        </svg>
-                      ) : (
-                        <svg className="w-5 h-5 text-lime-400" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                        </svg>
-                      )}
-                    </div>
-                    <div className="flex-1 text-left">
-                      <p className="font-medium text-white">{shortcut.label}</p>
-                      <p className="text-sm text-gray-500">{shortcut.address || "Set location"}</p>
-                    </div>
-                  </button>
-                ))}
-                
-                {/* Use current location */}
-                <button
-                  onClick={() => {
-                    setShowLocationSearch(false)
-                  }}
-                  className="w-full flex items-center gap-4 p-3 hover:bg-gray-800 rounded-xl transition-colors mt-2"
-                >
-                  <div className="w-10 h-10 bg-lime-400/20 rounded-full flex items-center justify-center">
-                    <Navigation className="w-5 h-5 text-lime-400" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <p className="font-medium text-white">Use current location</p>
-                    <p className="text-sm text-gray-500">Your GPS location</p>
-                  </div>
-                </button>
-              </div>
-            ) : (
-              <div className="p-8 text-center">
-                <p className="text-gray-500">No results found</p>
-              </div>
-            )}
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion.placeId}
+                onClick={() => handleSelectPlace(suggestion)}
+                className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 border-b border-gray-100"
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-gray-500" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-medium text-gray-900">{suggestion.mainText}</p>
+                  <p className="text-sm text-gray-500">{suggestion.secondaryText}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}

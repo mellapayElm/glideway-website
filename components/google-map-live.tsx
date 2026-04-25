@@ -1,21 +1,19 @@
-"use client";
+"use client"
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { MapPin, Car, Navigation, Loader2 } from "lucide-react";
-import { loadGoogleMaps } from "@/lib/google-maps-loader";
+import { useEffect, useRef, useState } from "react"
+import { Loader2 } from "lucide-react"
+import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
 type Props = {
-  pickup?: { lat: number; lng: number };
-  dropoff?: { lat: number; lng: number };
-  driver?: { lat: number; lng: number; heading?: number; speedKph?: number };
-  showRoute?: boolean;
-  height?: number | string;
-  className?: string;
-  onMapReady?: (map: google.maps.Map) => void;
-};
+  pickup?: { lat: number; lng: number }
+  dropoff?: { lat: number; lng: number }
+  driver?: { lat: number; lng: number; heading?: number }
+  showRoute?: boolean
+  height?: number | string
+  className?: string
+}
 
-// Default to Los Angeles if no location provided
-const DEFAULT_CENTER = { lat: 34.0522, lng: -118.2437 };
+const DEFAULT_CENTER = { lat: 34.0522, lng: -118.2437 }
 
 export default function GoogleMapLive({ 
   pickup, 
@@ -23,246 +21,201 @@ export default function GoogleMapLive({
   driver,
   showRoute = true,
   height = 400,
-  className = "",
-  onMapReady
+  className = ""
 }: Props) {
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markersRef = useRef<{
-    pickup?: google.maps.marker.AdvancedMarkerElement;
-    dropoff?: google.maps.marker.AdvancedMarkerElement;
-    driver?: google.maps.marker.AdvancedMarkerElement;
-  }>({});
-  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Create custom marker icons
-  const createPickupIcon = useCallback(() => {
-    if (!window.google?.maps) return null;
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      fillColor: "#22c55e",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 3,
-      scale: 12,
-    };
-  }, []);
-
-  const createDropoffIcon = useCallback(() => {
-    if (!window.google?.maps) return null;
-    return {
-      path: google.maps.SymbolPath.CIRCLE,
-      fillColor: "#ef4444",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 3,
-      scale: 12,
-    };
-  }, []);
-
-  const createDriverIcon = useCallback((heading: number = 0) => {
-    if (!window.google?.maps) return null;
-    return {
-      path: "M12 2L4 20h16L12 2z",
-      fillColor: "#22c55e",
-      fillOpacity: 1,
-      strokeColor: "#ffffff",
-      strokeWeight: 2,
-      scale: 1.5,
-      rotation: heading,
-      anchor: new google.maps.Point(12, 12),
-    };
-  }, []);
+  const mapRef = useRef<HTMLDivElement | null>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+  const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
+  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
+  const driverMarkerRef = useRef<google.maps.Marker | null>(null)
+  const directionsRendererRef = useRef<google.maps.DirectionsRenderer | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Initialize map
   useEffect(() => {
-    let isMounted = true;
-
-    async function initMap() {
-      if (!mapRef.current) return;
+    const initMap = async () => {
+      if (!mapRef.current) return
 
       try {
-        await loadGoogleMaps();
+        await loadGoogleMaps()
         
-        if (!isMounted || !mapRef.current) return;
+        if (!window.google?.maps) {
+          setError("Google Maps failed to load")
+          setIsLoading(false)
+          return
+        }
 
-        const center = driver || pickup || DEFAULT_CENTER;
-        
-        const map = new google.maps.Map(mapRef.current, {
+        const center = pickup || dropoff || driver || DEFAULT_CENTER
+
+        const map = new window.google.maps.Map(mapRef.current, {
           center,
           zoom: 14,
+          disableDefaultUI: false,
+          zoomControl: true,
           mapTypeControl: false,
           streetViewControl: false,
-          fullscreenControl: false,
-          zoomControl: true,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1a1a2e" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#8b8b8b" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#2d2d44" }] },
-            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#1a1a2e" }] },
-            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3d3d5c" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e4166" }] },
-            { featureType: "poi", elementType: "geometry", stylers: [{ color: "#1a1a2e" }] },
-            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#1a3320" }] },
-          ],
-        });
+          fullscreenControl: true,
+        })
 
-        mapInstanceRef.current = map;
-        setIsLoading(false);
-        onMapReady?.(map);
+        mapInstanceRef.current = map
 
+        // Create directions renderer
+        directionsRendererRef.current = new window.google.maps.DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: "#22c55e",
+            strokeWeight: 5,
+          },
+        })
+
+        setIsLoading(false)
       } catch (err) {
-        console.error("[GoogleMapLive] Error:", err);
-        if (isMounted) {
-          const errorMessage = err instanceof Error ? err.message : "Unknown error";
-          setError(`Failed to load Google Maps: ${errorMessage}`);
-          setIsLoading(false);
-        }
+        console.error("[v0] Map initialization error:", err)
+        setError("Failed to initialize map")
+        setIsLoading(false)
       }
     }
 
-    initMap();
+    initMap()
+  }, [])
 
-    return () => {
-      isMounted = false;
-    };
-  }, [onMapReady]);
-
-  // Update markers when locations change
+  // Update markers
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map || isLoading || !window.google?.maps || !window.google.maps.marker) return;
+    if (!mapInstanceRef.current || !window.google?.maps) return
 
-    // Create pickup marker
+    const map = mapInstanceRef.current
+
+    // Pickup marker
     if (pickup) {
-      if (!markersRef.current.pickup) {
-        const pickupDiv = document.createElement('div');
-        pickupDiv.innerHTML = '<div class="w-6 h-6 bg-emerald-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center"><div class="w-2 h-2 bg-white rounded-full"></div></div>';
-        try {
-          markersRef.current.pickup = new google.maps.marker.AdvancedMarkerElement({
-            map,
-            position: pickup,
-            title: "Pickup",
-            content: pickupDiv,
-          });
-        } catch (e) {
-          console.error("[GlideWay] Error creating pickup marker:", e);
-        }
+      if (pickupMarkerRef.current) {
+        pickupMarkerRef.current.setPosition(pickup)
       } else {
-        markersRef.current.pickup.position = pickup;
+        pickupMarkerRef.current = new window.google.maps.Marker({
+          position: pickup,
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: "#22c55e",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+          title: "Pickup",
+        })
       }
     }
 
-    // Create dropoff marker
+    // Dropoff marker
     if (dropoff) {
-      if (!markersRef.current.dropoff) {
-        const dropoffDiv = document.createElement('div');
-        dropoffDiv.innerHTML = '<div class="w-6 h-6 bg-red-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center"><div class="w-2 h-2 bg-white rounded-full"></div></div>';
-        try {
-          markersRef.current.dropoff = new google.maps.marker.AdvancedMarkerElement({
-            map,
-            position: dropoff,
-            title: "Dropoff",
-            content: dropoffDiv,
-          });
-        } catch (e) {
-          console.error("[GlideWay] Error creating dropoff marker:", e);
-        }
+      if (dropoffMarkerRef.current) {
+        dropoffMarkerRef.current.setPosition(dropoff)
       } else {
-        markersRef.current.dropoff.position = dropoff;
+        dropoffMarkerRef.current = new window.google.maps.Marker({
+          position: dropoff,
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 12,
+            fillColor: "#ef4444",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+          title: "Dropoff",
+        })
       }
     }
 
-    // Create driver marker
+    // Driver marker
     if (driver) {
-      if (!markersRef.current.driver) {
-        const driverDiv = document.createElement('div');
-        driverDiv.innerHTML = '<div class="w-5 h-5 bg-emerald-400 rounded-full border-2 border-white shadow-lg flex items-center justify-center text-xs">🚗</div>';
-        try {
-          markersRef.current.driver = new google.maps.marker.AdvancedMarkerElement({
-            map,
-            position: driver,
-            title: "Driver",
-            content: driverDiv,
-          });
-        } catch (e) {
-          console.error("[GlideWay] Error creating driver marker:", e);
-        }
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.setPosition(driver)
       } else {
-        markersRef.current.driver.position = driver;
+        driverMarkerRef.current = new window.google.maps.Marker({
+          position: driver,
+          map,
+          icon: {
+            path: "M12 2L4.5 20.3l.7.7L12 18l6.8 3 .7-.7L12 2z",
+            scale: 1.5,
+            fillColor: "#3b82f6",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            rotation: driver.heading || 0,
+            anchor: new window.google.maps.Point(12, 12),
+          },
+          title: "Driver",
+        })
       }
     }
 
-    // Fit bounds to show all markers
-    const bounds = new google.maps.LatLngBounds();
-    if (pickup) bounds.extend(pickup);
-    if (dropoff) bounds.extend(dropoff);
-    if (driver) bounds.extend(driver);
-    
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 60 });
+    // Draw route
+    if (showRoute && pickup && dropoff && directionsRendererRef.current) {
+      const directionsService = new window.google.maps.DirectionsService()
+      directionsService.route(
+        {
+          origin: pickup,
+          destination: dropoff,
+          travelMode: window.google.maps.TravelMode.DRIVING,
+        },
+        (result, status) => {
+          if (status === "OK" && result) {
+            directionsRendererRef.current?.setDirections(result)
+          }
+        }
+      )
     }
-  }, [pickup, dropoff, driver, isLoading]);
+
+    // Fit bounds
+    if (pickup || dropoff) {
+      const bounds = new window.google.maps.LatLngBounds()
+      if (pickup) bounds.extend(pickup)
+      if (dropoff) bounds.extend(dropoff)
+      if (driver) bounds.extend(driver)
+      map.fitBounds(bounds, 50)
+    }
+  }, [pickup, dropoff, driver, showRoute])
 
   if (error) {
     return (
       <div 
-        className={`relative bg-slate-900 rounded-lg flex items-center justify-center ${className}`}
+        className={`flex items-center justify-center bg-gray-100 ${className}`}
         style={{ height }}
       >
-        <div className="text-center p-6">
-          <MapPin className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-          <p className="text-slate-400 text-sm max-w-xs">{error}</p>
-        </div>
+        <p className="text-gray-500">{error}</p>
       </div>
-    );
+    )
   }
 
   return (
     <div className={`relative ${className}`} style={{ height }}>
       {isLoading && (
-        <div className="absolute inset-0 bg-slate-900 flex items-center justify-center z-10 rounded-lg">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mx-auto mb-2" />
-            <p className="text-slate-400 text-sm">Loading map...</p>
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+          <Loader2 className="w-8 h-8 text-green-500 animate-spin" />
         </div>
       )}
-      <div 
-        ref={mapRef} 
-        className="w-full h-full rounded-lg"
-        style={{ minHeight: height }}
-      />
+      <div ref={mapRef} className="w-full h-full" />
       
-      {/* Map Legend */}
-      <div className="absolute bottom-4 left-4 bg-slate-900/90 backdrop-blur-sm rounded-lg p-3 text-xs">
-        <div className="flex items-center gap-3">
-          {pickup && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="text-slate-300">Pickup</span>
-            </div>
-          )}
-          {dropoff && (
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500" />
-              <span className="text-slate-300">Dropoff</span>
-            </div>
-          )}
-          {driver && (
-            <div className="flex items-center gap-1.5">
-              <Car className="w-3 h-3 text-emerald-400" />
-              <span className="text-slate-300">Driver</span>
-            </div>
-          )}
+      {/* Legend */}
+      <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg flex items-center gap-4 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <span className="text-gray-700">Pickup</span>
         </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-3 rounded-full bg-red-500" />
+          <span className="text-gray-700">Dropoff</span>
+        </div>
+        {driver && (
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full bg-blue-500" />
+            <span className="text-gray-700">Driver</span>
+          </div>
+        )}
       </div>
     </div>
-  );
+  )
 }
-
-// Also export a named export for backwards compatibility
-export { GoogleMapLive };

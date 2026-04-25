@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Calendar, Users, MapPin, Clock, Navigation, Plus, X } from "lucide-react"
-import { loadGoogleMaps } from "@/lib/google-maps-loader"
+import dynamic from "next/dynamic"
+import { searchAddresses, reverseGeocode, calculateDistance, estimateRideCost } from "@/lib/map-utils"
+
+// Dynamic import to avoid SSR issues with Leaflet
+const LeafletMap = dynamic(() => import("./leaflet-map").then((mod) => mod.LeafletMap), { ssr: false })
 
 const RIDE_TYPES = [
   { id: "economy", name: "Economy", price: "$26.96", time: "in 8 min", seats: 4, description: "Affordable rides" },
@@ -17,10 +21,10 @@ const SHORTCUTS = [
 ]
 
 interface PlaceSuggestion {
-  placeId: string
-  description: string
-  mainText: string
-  secondaryText: string
+  address: string
+  lat: number
+  lng: number
+  displayName: string
 }
 
 interface ActiveRide {
@@ -57,18 +61,13 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
   const [searchQuery, setSearchQuery] = useState("")
   const [suggestions, setSuggestions] = useState<PlaceSuggestion[]>([])
   const [showRideOptions, setShowRideOptions] = useState(false)
-  const [mapLoaded, setMapLoaded] = useState(false)
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [pickupLocation, setPickupLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [dropoffLocation, setDropoffLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [savedShortcuts, setSavedShortcuts] = useState(SHORTCUTS)
+  const [estimatedCost, setEstimatedCost] = useState("$26.96")
+  const [estimatedTime, setEstimatedTime] = useState("8 min")
   
-  const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstanceRef = useRef<google.maps.Map | null>(null)
-  const autocompleteServiceRef = useRef<google.maps.places.AutocompleteService | null>(null)
-  const placesServiceRef = useRef<google.maps.places.PlacesService | null>(null)
-  const geocoderRef = useRef<google.maps.Geocoder | null>(null)
-  const pickupMarkerRef = useRef<google.maps.Marker | null>(null)
-  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null)
-  const routeRef = useRef<google.maps.DirectionsRenderer | null>(null)
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Set greeting based on time of day
@@ -99,86 +98,22 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
     }
   }, [])
 
-  // Initialize Google Maps
+  // Initialize map and reverse geocode user location
   useEffect(() => {
-    const initMap = async () => {
-      try {
-        await loadGoogleMaps()
-        
-        if (!mapRef.current || !window.google?.maps) return
-
-        const center = userLocation || { lat: 38.8339, lng: -104.8214 }
-        
-        const map = new window.google.maps.Map(mapRef.current, {
-          center,
-          zoom: 15,
-          disableDefaultUI: true,
-          zoomControl: false,
-          styles: [
-            { elementType: "geometry", stylers: [{ color: "#1d2c4d" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#8ec3b9" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#1a3646" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#304a7d" }] },
-            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#255763" }] },
-            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#2c6675" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
-          ],
-        })
-
-        mapInstanceRef.current = map
-        autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService()
-        placesServiceRef.current = new window.google.maps.places.PlacesService(map)
-        geocoderRef.current = new window.google.maps.Geocoder()
-        
-        // Add user location marker
-        pickupMarkerRef.current = new window.google.maps.Marker({
-          position: center,
-          map,
-          icon: {
-            path: window.google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#7CFF3A",
-            fillOpacity: 1,
-            strokeColor: "#fff",
-            strokeWeight: 3,
-          },
-        })
-
-        // Initialize directions renderer
-        routeRef.current = new window.google.maps.DirectionsRenderer({
-          map,
-          suppressMarkers: true,
-          polylineOptions: {
-            strokeColor: "#7CFF3A",
-            strokeWeight: 5,
-          },
-        })
-
+    const initializeUserLocation = async () => {
+      if (userLocation) {
+        setPickupLocation(userLocation)
         // Reverse geocode to get address
-        if (geocoderRef.current) {
-          geocoderRef.current.geocode({ location: center }, (results, status) => {
-            if (status === "OK" && results?.[0]) {
-              setPickup(results[0].formatted_address)
-            }
-          })
-        }
-
-        setMapLoaded(true)
-      } catch (error) {
-        console.error("[v0] Failed to initialize Google Maps:", error)
-        setMapLoaded(true) // Show UI even if map fails
+        const address = await reverseGeocode(userLocation.lat, userLocation.lng)
+        setPickup(address)
       }
     }
-
-    if (userLocation) {
-      initMap()
-    }
+    initializeUserLocation()
   }, [userLocation])
 
-  // Search for places
-  const searchPlaces = useCallback((query: string) => {
-    if (!autocompleteServiceRef.current || query.length < 2) {
+  // Search for addresses using Nominatim (free)
+  const searchPlaces = useCallback(async (query: string) => {
+    if (query.length < 2) {
       setSuggestions([])
       return
     }
@@ -187,119 +122,42 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
       clearTimeout(debounceRef.current)
     }
 
-    debounceRef.current = setTimeout(() => {
-      autocompleteServiceRef.current?.getPlacePredictions(
-        {
-          input: query,
-          componentRestrictions: { country: "us" },
-          types: ["geocode", "establishment"],
-        },
-        (predictions, status) => {
-          if (status === "OK" && predictions) {
-            setSuggestions(
-              predictions.map((p) => ({
-                placeId: p.place_id,
-                description: p.description,
-                mainText: p.structured_formatting.main_text,
-                secondaryText: p.structured_formatting.secondary_text,
-              }))
-            )
-          } else {
-            setSuggestions([])
-          }
-        }
-      )
+    debounceRef.current = setTimeout(async () => {
+      const results = await searchAddresses(query)
+      setSuggestions(results)
     }, 300)
   }, [])
 
   // Handle place selection
   const handleSelectPlace = useCallback((suggestion: PlaceSuggestion) => {
-    if (!placesServiceRef.current || !mapInstanceRef.current) {
-      // Fallback if Maps not loaded
-      if (searchType === "pickup") {
-        setPickup(suggestion.description)
-      } else {
-        setDropoff(suggestion.description)
-        setShowRideOptions(true)
+    if (searchType === "pickup") {
+      setPickup(suggestion.address)
+      setPickupLocation({ lat: suggestion.lat, lng: suggestion.lng })
+    } else {
+      setDropoff(suggestion.address)
+      setDropoffLocation({ lat: suggestion.lat, lng: suggestion.lng })
+      
+      // Calculate distance and cost
+      if (pickupLocation) {
+        const distance = calculateDistance(pickupLocation.lat, pickupLocation.lng, suggestion.lat, suggestion.lng)
+        const cost = estimateRideCost(distance, selectedRide)
+        setEstimatedCost(`$${cost.toFixed(2)}`)
+        setEstimatedTime(`${Math.ceil(distance * 2)} min`)
       }
-      setShowLocationSearch(false)
-      setSuggestions([])
-      setSearchQuery("")
-      return
+      
+      setShowRideOptions(true)
     }
-
-    placesServiceRef.current.getDetails(
-      { placeId: suggestion.placeId, fields: ["geometry", "formatted_address"] },
-      (place, status) => {
-        if (status === "OK" && place?.geometry?.location) {
-          const location = place.geometry.location
-          const address = place.formatted_address || suggestion.description
-
-          if (searchType === "pickup") {
-            setPickup(address)
-            pickupMarkerRef.current?.setPosition(location)
-            mapInstanceRef.current?.panTo(location)
-          } else {
-            setDropoff(address)
-            
-            // Add or update dropoff marker
-            if (dropoffMarkerRef.current) {
-              dropoffMarkerRef.current.setPosition(location)
-            } else if (window.google?.maps) {
-              dropoffMarkerRef.current = new window.google.maps.Marker({
-                position: location,
-                map: mapInstanceRef.current,
-                icon: {
-                  path: window.google.maps.SymbolPath.CIRCLE,
-                  scale: 10,
-                  fillColor: "#FF6B6B",
-                  fillOpacity: 1,
-                  strokeColor: "#fff",
-                  strokeWeight: 3,
-                },
-              })
-            }
-
-            // Draw route
-            if (pickupMarkerRef.current && routeRef.current && window.google?.maps) {
-              const directionsService = new window.google.maps.DirectionsService()
-              directionsService.route(
-                {
-                  origin: pickupMarkerRef.current.getPosition()!,
-                  destination: location,
-                  travelMode: window.google.maps.TravelMode.DRIVING,
-                },
-                (result, routeStatus) => {
-                  if (routeStatus === "OK" && result) {
-                    routeRef.current?.setDirections(result)
-                    
-                    // Fit bounds to show entire route
-                    const bounds = new window.google.maps.LatLngBounds()
-                    bounds.extend(pickupMarkerRef.current!.getPosition()!)
-                    bounds.extend(location)
-                    mapInstanceRef.current?.fitBounds(bounds, { top: 50, bottom: 300, left: 50, right: 50 })
-                  }
-                }
-              )
-            }
-            
-            setShowRideOptions(true)
-          }
-
-          setShowLocationSearch(false)
-          setSuggestions([])
-          setSearchQuery("")
-        }
-      }
-    )
-  }, [searchType])
+    setShowLocationSearch(false)
+    setSuggestions([])
+    setSearchQuery("")
+  }, [searchType, pickupLocation])
 
   // Handle ride booking
   const handleBookRide = () => {
     if (!pickup || !dropoff) return
 
     const rideType = RIDE_TYPES.find(r => r.id === selectedRide)
-    const fare = parseFloat(rideType?.price.replace("$", "") || "26.96")
+    const fare = parseFloat(estimatedCost.replace("$", ""))
 
     setIsTracking(true)
     setActiveRide({
@@ -368,8 +226,17 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
               </svg>
             </div>
           </div>
-          {/* Google Maps container */}
-          <div ref={mapRef} className="absolute inset-0 z-[1]" />
+          {/* Leaflet Map container */}
+          {userLocation && (
+            <LeafletMap
+              pickupLat={pickupLocation?.lat || userLocation.lat}
+              pickupLng={pickupLocation?.lng || userLocation.lng}
+              dropoffLat={dropoffLocation?.lat}
+              dropoffLng={dropoffLocation?.lng}
+              pickupAddress={pickup}
+              dropoffAddress={dropoff}
+            />
+          )}
         </div>
 
         {/* Ride Status Card */}
@@ -451,8 +318,17 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
         <div className="absolute inset-0 bg-gradient-to-b from-gray-950/80 via-transparent to-gray-950/90" />
       </div>
       
-      {/* Google Maps container (will show if API works) */}
-      <div ref={mapRef} className="absolute inset-0 z-[1]" />
+      {/* Leaflet Map container */}
+      {userLocation && (
+        <LeafletMap
+          pickupLat={pickupLocation?.lat || userLocation.lat}
+          pickupLng={pickupLocation?.lng || userLocation.lng}
+          dropoffLat={dropoffLocation?.lat}
+          dropoffLng={dropoffLocation?.lng}
+          pickupAddress={pickup}
+          dropoffAddress={dropoff}
+        />
+      )}
 
       {/* Content Overlay */}
       <div className="relative z-[5] flex flex-col h-full">

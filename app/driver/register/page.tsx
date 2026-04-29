@@ -256,7 +256,7 @@ export default function DriverRegister() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "DRIVER_COMPLETE",
-          verificationId,
+          // verificationId temporarily disabled
           ...formData
         })
       })
@@ -290,12 +290,14 @@ export default function DriverRegister() {
         setError("Please enter a valid SSN")
         return
       }
-      initiateRegistration()
+      // Skip verification for now - go directly to password step
+      setStep(3)
       return
     }
 
+    // Step 2 verification temporarily disabled
     if (step === 2) {
-      verifyOtp()
+      setStep(3)
       return
     }
 
@@ -382,51 +384,51 @@ export default function DriverRegister() {
   // Success Screen
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0d1f0d] to-[#0a0a0a] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-[#111]/90 border-[#222] backdrop-blur-xl">
+      <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white border-green-200 shadow-lg">
           <CardContent className="p-8 text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
             >
-              <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              <CheckCircle2 className="w-10 h-10 text-green-500" />
             </motion.div>
             
-            <h2 className="text-2xl font-bold text-white mb-2">Application Submitted!</h2>
-            <p className="text-gray-400 mb-6">Your driver application is pending review.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
+            <p className="text-gray-600 mb-6">Your driver application is pending review.</p>
 
-            <div className="bg-[#1a1a1a] rounded-lg p-4 mb-6 text-left space-y-3">
-              <h3 className="text-white font-medium">Next Steps:</h3>
+            <div className="bg-green-50 rounded-lg p-4 mb-6 text-left space-y-3 border border-green-200">
+              <h3 className="text-gray-900 font-medium">Next Steps:</h3>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">1</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">1</span>
                 </div>
-                <p className="text-sm text-gray-400">Background check will be initiated (2-5 business days)</p>
+                <p className="text-sm text-gray-600">Background check will be initiated (2-5 business days)</p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">2</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">2</span>
                 </div>
-                <p className="text-sm text-gray-400">Documents will be reviewed by our team</p>
+                <p className="text-sm text-gray-600">Documents will be reviewed by our team</p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">3</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">3</span>
                 </div>
-                <p className="text-sm text-gray-400">You will receive email notification when approved</p>
+                <p className="text-sm text-gray-600">You will receive email notification when approved</p>
               </div>
             </div>
 
             <div className="flex gap-3">
               <Link href="/" className="flex-1">
-                <Button variant="outline" className="w-full border-[#333] text-white hover:bg-[#222]">
+                <Button variant="outline" className="w-full border-green-200 text-gray-700 hover:bg-green-50">
                   Back to Home
                 </Button>
               </Link>
               <Link href="/driver/status" className="flex-1">
-                <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">
+                <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
                   Check Status
                 </Button>
               </Link>
@@ -438,25 +440,25 @@ export default function DriverRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0d1f0d] to-[#0a0a0a] flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-white flex items-center justify-center p-4 py-12">
       {/* Security Badge */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 z-50">
-        <ShieldCheck className="w-4 h-4 text-emerald-500" />
-        <span className="text-xs text-emerald-400">256-bit SSL Encrypted</span>
-        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-green-100 border border-green-200 rounded-full px-4 py-2 z-50 shadow-sm">
+        <ShieldCheck className="w-4 h-4 text-green-600" />
+        <span className="text-xs text-green-700 font-medium">256-bit SSL Encrypted</span>
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
       </div>
 
-      <Card className="w-full max-w-lg bg-[#111]/90 border-[#222] backdrop-blur-xl">
+      <Card className="w-full max-w-lg bg-white border-green-200 shadow-lg">
         <CardContent className="p-6">
           {/* Logo */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">G</span>
               </div>
-              <span className="text-xl font-bold text-white">GlideWay Driver</span>
+              <span className="text-xl font-bold text-gray-900">GlideWay Driver</span>
             </div>
-            <p className="text-sm text-gray-400">Become a GlideWay Driver Partner</p>
+            <p className="text-sm text-gray-600">Become a GlideWay Driver Partner</p>
           </div>
 
           {/* Progress Bar */}
@@ -465,9 +467,9 @@ export default function DriverRegister() {
               <span>Step {step} of 10</span>
               <span>{stepTitles[step - 1]}</span>
             </div>
-            <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                className="h-full bg-gradient-to-r from-green-500 to-green-400"
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / 10) * 100}%` }}
               />

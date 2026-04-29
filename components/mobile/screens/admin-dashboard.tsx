@@ -48,7 +48,7 @@ export function AdminDashboard() {
   return (
     <div className="flex flex-col h-full bg-gray-100">
       {/* Header */}
-      <div className="bg-emerald-600 text-white px-4 py-4">
+      <div className="bg-emerald-600 text-gray-900 px-4 py-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">GlideWay Admin</h1>
           <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ export function AdminDashboard() {
                     }`} />
                     <div className="flex-1">
                       <p className="text-sm text-gray-700">{activity.text}</p>
-                      <p className="text-xs text-gray-400">{activity.time}</p>
+                      <p className="text-xs text-gray-600">{activity.time}</p>
                     </div>
                   </div>
                 ))}
@@ -165,7 +165,7 @@ export function AdminDashboard() {
                 placeholder="Search users..."
                 className="flex-1 px-4 py-2 bg-white rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
-              <button className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium">
+              <button className="px-4 py-2 bg-emerald-500 text-gray-900 rounded-xl text-sm font-medium">
                 Search
               </button>
             </div>
@@ -257,7 +257,7 @@ export function AdminDashboard() {
                   </button>
                   {driver.status === "pending" && (
                     <>
-                      <button className="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium">
+                      <button className="flex-1 py-2 bg-emerald-500 text-gray-900 rounded-lg text-sm font-medium">
                         Approve
                       </button>
                       <button className="flex-1 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium">
@@ -406,7 +406,7 @@ export function AdminDashboard() {
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => setSelectedTicket(ticket.id)}
-                    className="flex-1 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium"
+                    className="flex-1 py-2 bg-emerald-500 text-gray-900 rounded-lg text-sm font-medium"
                   >
                     Respond
                   </button>
@@ -446,7 +446,7 @@ export function AdminDashboard() {
                     placeholder="End Date"
                   />
                 </div>
-                <button className="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium">
+                <button className="w-full py-3 bg-emerald-500 text-gray-900 rounded-xl font-medium">
                   Generate Report
                 </button>
               </div>
@@ -523,7 +523,7 @@ export function AdminDashboard() {
                   setTicketResponse("")
                   setSelectedTicket(null)
                 }}
-                className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-medium"
+                className="flex-1 py-3 bg-emerald-500 text-gray-900 rounded-xl font-medium"
               >
                 Send Response
               </button>

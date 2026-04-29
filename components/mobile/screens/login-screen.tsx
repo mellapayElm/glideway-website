@@ -128,16 +128,16 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
   // Country Picker Modal
   if (showCountryPicker) {
     return (
-      <div className="w-full min-h-screen bg-gray-950 flex flex-col">
+      <div className="w-full min-h-screen bg-white flex flex-col">
         {/* Header */}
-        <div className="bg-gray-900 border-b border-gray-800 px-4 py-4 flex items-center gap-3">
+        <div className="bg-gray-50 border-b border-green-200 px-4 py-4 flex items-center gap-3">
           <button 
             onClick={() => setShowCountryPicker(false)}
-            className="w-10 h-10 flex items-center justify-center hover:bg-gray-800 rounded-lg transition-colors"
+            className="w-10 h-10 flex items-center justify-center hover:bg-green-50 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-white" />
+            <X className="w-5 h-5 text-gray-900" />
           </button>
-          <h2 className="text-lg font-semibold text-white">Select Country</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Select Country</h2>
         </div>
 
         {/* Search */}
@@ -149,7 +149,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
               value={countrySearch}
               onChange={(e) => setCountrySearch(e.target.value)}
               placeholder="Search countries..."
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-lime-400"
+              className="w-full bg-green-50 border border-green-200 rounded-lg pl-10 pr-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-green-500"
             />
           </div>
         </div>
@@ -164,17 +164,17 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
                 setShowCountryPicker(false)
                 setCountrySearch("")
               }}
-              className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-gray-800 transition-colors border-b border-gray-800 ${
-                selectedCountry.code === country.code ? "bg-lime-400/10" : ""
+              className={`w-full flex items-center gap-4 px-4 py-3 hover:bg-green-50 transition-colors border-b border-green-200 ${
+                selectedCountry.code === country.code ? "bg-green-500/10" : ""
               }`}
             >
               <span className="text-2xl">{country.flag}</span>
               <div className="flex-1 text-left">
-                <p className="text-white font-medium">{country.name}</p>
+                <p className="text-gray-900 font-medium">{country.name}</p>
                 <p className="text-gray-500 text-sm">{country.dial}</p>
               </div>
               {selectedCountry.code === country.code && (
-                <div className="w-5 h-5 bg-lime-400 rounded-full flex items-center justify-center">
+                <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
                   <svg className="w-3 h-3 text-gray-950" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
                   </svg>
@@ -188,9 +188,9 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
   }
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex flex-col">
+    <div className="w-full min-h-screen bg-gradient-to-br from-white via-gray-50 to-white flex flex-col">
       {/* Status Bar */}
-      <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-gray-800">
+      <div className="bg-gray-50 text-gray-900 px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-green-200">
         <span>9:41</span>
         <div className="flex items-center gap-1">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -210,7 +210,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
         {loginMethod && (
           <button
             onClick={() => setLoginMethod(null)}
-            className="flex items-center gap-2 text-lime-400 hover:text-lime-300 mb-4 transition-colors"
+            className="flex items-center gap-2 text-green-500 hover:text-lime-300 mb-4 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
             <span className="text-sm font-medium">Back</span>
@@ -228,24 +228,24 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
 
             {/* Header */}
             <div className="mb-6 text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Welcome to GlideWay</h1>
-              <p className="text-gray-400 text-sm">Sign in to continue</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome to GlideWay</h1>
+              <p className="text-gray-600 text-sm">Sign in to continue</p>
             </div>
 
             {/* Phone Option */}
             <button
               onClick={() => setLoginMethod("phone")}
-              className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-lime-400/50 rounded-lg p-4 mb-3 transition-all text-left group"
+              className="w-full bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-500/50 rounded-lg p-4 mb-3 transition-all text-left group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-lime-400/20 rounded-full flex items-center justify-center group-hover:bg-lime-400/30 transition-colors">
-                  <svg className="w-6 h-6 text-lime-400" fill="currentColor" viewBox="0 0 24 24">
+                <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                  <svg className="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
                   </svg>
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Phone Number</h3>
-                  <p className="text-gray-400 text-sm">Sign in with your phone</p>
+                  <h3 className="text-gray-900 font-semibold">Phone Number</h3>
+                  <p className="text-gray-600 text-sm">Sign in with your phone</p>
                 </div>
               </div>
             </button>
@@ -253,15 +253,15 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             {/* Email Option */}
             <button
               onClick={() => setLoginMethod("email")}
-              className="w-full bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-lime-400/50 rounded-lg p-4 mb-3 transition-all text-left group"
+              className="w-full bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-500/50 rounded-lg p-4 mb-3 transition-all text-left group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-lime-400/20 rounded-full flex items-center justify-center group-hover:bg-lime-400/30 transition-colors">
-                  <Mail className="w-6 h-6 text-lime-400" />
+                <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors">
+                  <Mail className="w-6 h-6 text-green-500" />
                 </div>
                 <div>
-                  <h3 className="text-white font-semibold">Email</h3>
-                  <p className="text-gray-400 text-sm">Sign in with your email</p>
+                  <h3 className="text-gray-900 font-semibold">Email</h3>
+                  <p className="text-gray-600 text-sm">Sign in with your email</p>
                 </div>
               </div>
             </button>
@@ -295,7 +295,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             {/* Find Account */}
             <button 
               onClick={() => setLoginMethod("find")}
-              className="w-full border-2 border-lime-400 text-lime-400 hover:bg-lime-400/10 font-medium py-3.5 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full border-2 border-green-500 text-green-500 hover:bg-green-500/10 font-medium py-3.5 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M15.5 1h-8C6.12 1 5 2.12 5 3.5v17C5 21.88 6.12 23 7.5 23h8c1.38 0 2.5-1.12 2.5-2.5v-17C18 2.12 16.88 1 15.5 1zm-4 21c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5-4H7V4h9v14z"/>
@@ -304,20 +304,20 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             </button>
 
             {/* Become a Driver */}
-            <div className="mt-6 pt-6 border-t border-gray-800">
+            <div className="mt-6 pt-6 border-t border-green-200">
               <button
                 onClick={onBecomeDriver}
-                className="w-full bg-gray-800/50 hover:bg-gray-800 border border-gray-700 hover:border-lime-400/30 rounded-lg p-4 transition-all text-left group"
+                className="w-full bg-green-50/50 hover:bg-green-50 border border-green-200 hover:border-green-500/30 rounded-lg p-4 transition-all text-left group"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-lime-400/10 rounded-full flex items-center justify-center group-hover:bg-lime-400/20 transition-colors">
-                    <Truck className="w-6 h-6 text-lime-400" />
+                  <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                    <Truck className="w-6 h-6 text-green-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-white font-semibold">Become a Driver</h3>
-                    <p className="text-gray-400 text-sm">Earn money on your schedule</p>
+                    <h3 className="text-gray-900 font-semibold">Become a Driver</h3>
+                    <p className="text-gray-600 text-sm">Earn money on your schedule</p>
                   </div>
-                  <ChevronDown className="w-5 h-5 text-gray-400 -rotate-90" />
+                  <ChevronDown className="w-5 h-5 text-gray-600 -rotate-90" />
                 </div>
               </button>
             </div>
@@ -326,9 +326,9 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             <div className="mt-6">
               <p className="text-xs text-gray-500 leading-relaxed text-center">
                 By continuing, you agree to our{" "}
-                <a href="/terms" className="text-lime-400 hover:underline">Terms of Service</a>
+                <a href="/terms" className="text-green-500 hover:underline">Terms of Service</a>
                 {" "}and{" "}
-                <a href="/privacy" className="text-lime-400 hover:underline">Privacy Policy</a>
+                <a href="/privacy" className="text-green-500 hover:underline">Privacy Policy</a>
               </p>
             </div>
           </>
@@ -336,21 +336,21 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
           <>
             {/* Phone Login Form */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Enter your mobile number</h1>
-              <p className="text-gray-400 text-sm">We&apos;ll send you a verification code</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Enter your mobile number</h1>
+              <p className="text-gray-600 text-sm">We&apos;ll send you a verification code</p>
             </div>
 
             {/* Phone Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">Mobile Number</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Mobile Number</label>
               <div className="flex gap-3">
                 {/* Country Selector */}
                 <button 
                   onClick={() => setShowCountryPicker(true)}
-                  className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-lg px-3 py-4 hover:border-lime-400/50 transition-colors min-w-[90px]"
+                  className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-4 hover:border-green-500/50 transition-colors min-w-[90px]"
                 >
                   <span className="text-2xl">{selectedCountry.flag}</span>
-                  <ChevronDown className="w-4 h-4 text-gray-400" />
+                  <ChevronDown className="w-4 h-4 text-gray-600" />
                 </button>
 
                 {/* Phone Input */}
@@ -359,7 +359,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
                   value={phone}
                   onChange={handlePhoneChange}
                   placeholder={selectedCountry.dial === "+1" ? "(201) 555-0123" : "Enter number"}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-lime-400 transition-colors"
+                  className="flex-1 bg-green-50 border border-green-200 rounded-lg px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors"
                 />
               </div>
               <p className="text-xs text-gray-500 mt-2">{selectedCountry.dial} will be added automatically</p>
@@ -369,7 +369,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             <button
               onClick={handlePhoneSubmit}
               disabled={phone.replace(/\D/g, "").length < 7}
-              className="w-full bg-lime-400 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 mb-4"
+              className="w-full bg-green-500 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 mb-4"
             >
               Continue
             </button>
@@ -403,7 +403,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             {/* Find Account */}
             <button 
               onClick={() => setLoginMethod("find")}
-              className="w-full border-2 border-lime-400 text-lime-400 hover:bg-lime-400/10 font-medium py-3.5 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="w-full border-2 border-green-500 text-green-500 hover:bg-green-500/10 font-medium py-3.5 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M15.5 1h-8C6.12 1 5 2.12 5 3.5v17C5 21.88 6.12 23 7.5 23h8c1.38 0 2.5-1.12 2.5-2.5v-17C18 2.12 16.88 1 15.5 1zm-4 21c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm4.5-4H7V4h9v14z"/>
@@ -415,19 +415,19 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
           <>
             {/* Email Login Form */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Enter your email</h1>
-              <p className="text-gray-400 text-sm">We&apos;ll send you a sign-in link</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Enter your email</h1>
+              <p className="text-gray-600 text-sm">We&apos;ll send you a sign-in link</p>
             </div>
 
             {/* Email Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">Email Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-lime-400 transition-colors"
+                className="w-full bg-green-50 border border-green-200 rounded-lg px-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors"
               />
             </div>
 
@@ -435,7 +435,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             <button
               onClick={handleEmailSubmit}
               disabled={!email.includes("@")}
-              className="w-full bg-lime-400 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 mb-4"
+              className="w-full bg-green-500 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 mb-4"
             >
               Continue
             </button>
@@ -470,13 +470,13 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
           <>
             {/* Find Account Form */}
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Find your account</h1>
-              <p className="text-gray-400 text-sm">Enter your phone number or email</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Find your account</h1>
+              <p className="text-gray-600 text-sm">Enter your phone number or email</p>
             </div>
 
             {/* Search Input */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-300 mb-3">Phone or Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Phone or Email</label>
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
@@ -484,7 +484,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
                   value={findAccountQuery}
                   onChange={(e) => setFindAccountQuery(e.target.value)}
                   placeholder="Enter phone or email"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-12 pr-4 py-4 text-white placeholder-gray-500 focus:outline-none focus:border-lime-400 transition-colors"
+                  className="w-full bg-green-50 border border-green-200 rounded-lg pl-12 pr-4 py-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors"
                 />
               </div>
             </div>
@@ -493,7 +493,7 @@ export function PhoneLoginScreen({ onBack, onContinue, onBecomeDriver }: PhoneLo
             <button
               onClick={handleFindAccount}
               disabled={findAccountQuery.length === 0}
-              className="w-full bg-lime-400 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300"
+              className="w-full bg-green-500 hover:bg-lime-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300"
             >
               Search
             </button>

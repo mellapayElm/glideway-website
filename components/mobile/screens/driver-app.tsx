@@ -101,13 +101,13 @@ export function DriverApp() {
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
-      <div className="bg-emerald-600 text-white px-4 py-5 pb-8">
+      <div className="bg-emerald-600 text-gray-900 px-4 py-5 pb-8">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-xl font-bold">GlideWay Driver</h1>
           <button
             onClick={() => setIsOnline(!isOnline)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              isOnline ? "bg-white text-emerald-600" : "bg-emerald-700 text-white"
+              isOnline ? "bg-white text-emerald-600" : "bg-emerald-700 text-gray-900"
             }`}
           >
             {isOnline ? "Online" : "Offline"}
@@ -196,7 +196,7 @@ export function DriverApp() {
             </div>
 
             {/* Navigate button */}
-            <button className="w-full py-3 bg-blue-500 text-white rounded-xl font-medium flex items-center justify-center gap-2 mb-3">
+            <button className="w-full py-3 bg-blue-500 text-gray-900 rounded-xl font-medium flex items-center justify-center gap-2 mb-3">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
@@ -207,14 +207,14 @@ export function DriverApp() {
             {activeTrip.status === "completed" ? (
               <button
                 onClick={completeTrip}
-                className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold"
+                className="w-full py-4 bg-emerald-500 text-gray-900 rounded-xl font-bold"
               >
                 Complete - ${activeTrip.fare.toFixed(2)}
               </button>
             ) : (
               <button
                 onClick={updateTripStatus}
-                className="w-full py-4 bg-emerald-500 text-white rounded-xl font-bold"
+                className="w-full py-4 bg-emerald-500 text-gray-900 rounded-xl font-bold"
               >
                 {activeTrip.status === "pickup" ? "Arrived at Pickup" : "Complete Trip"}
               </button>
@@ -242,7 +242,7 @@ export function DriverApp() {
             ) : (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <svg className="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                   </svg>
                 </div>
@@ -297,7 +297,7 @@ export function DriverApp() {
               key={item.id}
               onClick={() => setScreen(item.id as "home" | "earnings" | "profile")}
               className={`flex flex-col items-center gap-1 px-4 py-1 ${
-                screen === item.id ? "text-emerald-600" : "text-gray-400"
+                screen === item.id ? "text-emerald-600" : "text-gray-600"
               }`}
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -368,7 +368,7 @@ export function DriverApp() {
               </button>
               <button
                 onClick={acceptRide}
-                className="flex-1 py-4 bg-emerald-500 text-white rounded-xl font-semibold"
+                className="flex-1 py-4 bg-emerald-500 text-gray-900 rounded-xl font-semibold"
               >
                 Accept
               </button>
@@ -391,12 +391,12 @@ export function DriverApp() {
             </div>
             <div className="flex-1 p-4 overflow-y-auto min-h-[200px]">
               {messages.length === 0 && (
-                <p className="text-center text-gray-400 text-sm">Send a message to your passenger</p>
+                <p className="text-center text-gray-600 text-sm">Send a message to your passenger</p>
               )}
               {messages.map((msg, i) => (
                 <div key={i} className={`mb-2 ${msg.from === "driver" ? "text-right" : "text-left"}`}>
                   <span className={`inline-block px-4 py-2 rounded-2xl text-sm ${
-                    msg.from === "driver" ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-900"
+                    msg.from === "driver" ? "bg-emerald-500 text-gray-900" : "bg-gray-100 text-gray-900"
                   }`}>
                     {msg.text}
                   </span>
@@ -416,7 +416,7 @@ export function DriverApp() {
                 onClick={sendMessage}
                 className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center"
               >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
@@ -452,7 +452,7 @@ function DriverRegistration({ onBack }: { onBack: () => void }) {
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="bg-emerald-600 text-white px-4 py-5">
+      <div className="bg-emerald-600 text-gray-900 px-4 py-5">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={onBack} className="p-1">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -547,11 +547,11 @@ function DriverRegistration({ onBack }: { onBack: () => void }) {
                 />
               </div>
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="text-gray-600 font-medium">Upload license photo</p>
-                <p className="text-gray-400 text-sm">Front and back</p>
+                <p className="text-gray-600 text-sm">Front and back</p>
               </div>
             </div>
           </div>
@@ -670,7 +670,7 @@ function DriverRegistration({ onBack }: { onBack: () => void }) {
         )}
         <button
           onClick={() => (step < 4 ? setStep(step + 1) : onBack())}
-          className="flex-1 py-4 bg-emerald-500 text-white rounded-xl font-semibold"
+          className="flex-1 py-4 bg-emerald-500 text-gray-900 rounded-xl font-semibold"
         >
           {step === 4 ? "Submit Application" : "Continue"}
         </button>

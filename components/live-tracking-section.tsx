@@ -1,358 +1,334 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { 
-  MapPin, 
-  Phone, 
-  MessageCircle, 
-  Send, 
-  Navigation, 
-  Car, 
-  Star, 
-  Clock, 
-  DollarSign,
-  RefreshCcw,
-  PhoneCall,
-  Shield
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import GoogleMapLive from "@/components/google-map-live"
+import { useState, useEffect, useRef } from "react"
+import { Navigation, MessageCircle, Phone, Star, Shield, RefreshCw } from "lucide-react"
+import { loadGoogleMaps } from "@/lib/google-maps-loader"
 
-const mockMessages = [
-  { id: 1, sender: "system", text: "Your driver is on the way.", time: "2:34 PM" },
-  { id: 2, sender: "rider", text: "Hi, I am outside.", time: "2:35 PM" },
-  { id: 3, sender: "driver", text: "Got it, arriving now.", time: "2:35 PM" },
-]
-
-// Demo coordinates for Los Angeles area
-const DEMO_PICKUP = { lat: 34.0522, lng: -118.2537 }
-const DEMO_DROPOFF = { lat: 34.0622, lng: -118.2337 }
-const DEMO_DRIVER_START = { lat: 34.0482, lng: -118.2507 }
+// Demo trip data
+const DEMO_TRIP = {
+  id: "GW-10234",
+  status: "DRIVER_EN_ROUTE",
+  driver: {
+    name: "John Driver",
+    rating: 4.92,
+    totalRides: 2341,
+    vehicle: "Toyota Camry",
+    plate: "ABC 123",
+    initials: "JD",
+  },
+  pickup: { lat: 34.0522, lng: -118.2437, address: "123 Main St, Los Angeles" },
+  dropoff: { lat: 34.0689, lng: -118.2631, address: "456 Oak Ave, Hollywood" },
+  estimatedFare: 24.75,
+}
 
 export function LiveTrackingSection() {
-  const [messages, setMessages] = useState(mockMessages)
-  const [newMessage, setNewMessage] = useState("")
-  const [callStatus, setCallStatus] = useState<"ready" | "calling" | "connected">("ready")
-  const [refundAmount, setRefundAmount] = useState("5.00")
-  const [refundReason, setRefundReason] = useState("")
-  const [refundStatus, setRefundStatus] = useState<"none" | "submitted" | "processing">("none")
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstanceRef = useRef<google.maps.Map | null>(null)
+  const driverMarkerRef = useRef<google.maps.Marker | null>(null)
   
-  // Simulated driver position for demo
-  const [driverPosition, setDriverPosition] = useState({
-    lat: DEMO_DRIVER_START.lat,
-    lng: DEMO_DRIVER_START.lng,
-    heading: 45,
-    speedKph: 35
-  })
+  const [mapLoaded, setMapLoaded] = useState(false)
+  const [driverPosition, setDriverPosition] = useState({ lat: 34.0490, lng: -118.2500 })
+  const [messages, setMessages] = useState([
+    { id: 1, from: "driver", text: "Your driver is on the way.", time: "2:34 PM" },
+    { id: 2, from: "rider", text: "Hi, I am outside.", time: "2:35 PM" },
+    { id: 3, from: "driver", text: "Got it, arriving now.", time: "2:36 PM" },
+  ])
+  const [newMessage, setNewMessage] = useState("")
 
-  // Simulate driver movement towards pickup
+  // Initialize Google Maps
+  useEffect(() => {
+    const initMap = async () => {
+      try {
+        await loadGoogleMaps()
+        
+        if (!mapRef.current || !window.google?.maps) return
+
+        const map = new window.google.maps.Map(mapRef.current, {
+          center: DEMO_TRIP.pickup,
+          zoom: 14,
+          disableDefaultUI: true,
+          zoomControl: true,
+          styles: [
+            { featureType: "poi", elementType: "labels", stylers: [{ visibility: "off" }] },
+          ],
+        })
+
+        mapInstanceRef.current = map
+
+        // Add pickup marker
+        new window.google.maps.Marker({
+          position: DEMO_TRIP.pickup,
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#22c55e",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+          title: "Pickup",
+        })
+
+        // Add dropoff marker
+        new window.google.maps.Marker({
+          position: DEMO_TRIP.dropoff,
+          map,
+          icon: {
+            path: window.google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: "#ef4444",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 3,
+          },
+          title: "Dropoff",
+        })
+
+        // Add driver marker
+        driverMarkerRef.current = new window.google.maps.Marker({
+          position: driverPosition,
+          map,
+          icon: {
+            path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z",
+            fillColor: "#3b82f6",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+            scale: 1.5,
+            anchor: new window.google.maps.Point(12, 22),
+          },
+          title: "Driver",
+        })
+
+        // Draw route
+        const directionsService = new window.google.maps.DirectionsService()
+        const directionsRenderer = new window.google.maps.DirectionsRenderer({
+          map,
+          suppressMarkers: true,
+          polylineOptions: {
+            strokeColor: "#22c55e",
+            strokeWeight: 4,
+          },
+        })
+
+        directionsService.route(
+          {
+            origin: DEMO_TRIP.pickup,
+            destination: DEMO_TRIP.dropoff,
+            travelMode: window.google.maps.TravelMode.DRIVING,
+          },
+          (result, status) => {
+            if (status === "OK" && result) {
+              directionsRenderer.setDirections(result)
+            }
+          }
+        )
+
+        setMapLoaded(true)
+      } catch (error) {
+        console.error("Failed to load Google Maps:", error)
+      }
+    }
+
+    initMap()
+  }, [])
+
+  // Simulate driver movement
   useEffect(() => {
     const interval = setInterval(() => {
-      setDriverPosition(prev => {
-        // Move driver towards pickup location
-        const targetLat = DEMO_PICKUP.lat
-        const targetLng = DEMO_PICKUP.lng
-        
-        const latDiff = targetLat - prev.lat
-        const lngDiff = targetLng - prev.lng
-        
-        // Calculate heading based on movement direction
-        const heading = Math.atan2(lngDiff, latDiff) * (180 / Math.PI)
-        
-        // Move 5% closer to target each step, with some randomness
-        const newLat = prev.lat + latDiff * 0.05 + (Math.random() - 0.5) * 0.0002
-        const newLng = prev.lng + lngDiff * 0.05 + (Math.random() - 0.5) * 0.0002
-        
-        // Simulate speed variations
-        const speedKph = 25 + Math.random() * 20
-        
-        return {
-          lat: newLat,
-          lng: newLng,
-          heading: heading + (Math.random() - 0.5) * 10,
-          speedKph
+      setDriverPosition((prev) => {
+        const newPos = {
+          lat: prev.lat + (Math.random() - 0.5) * 0.002,
+          lng: prev.lng + (Math.random() - 0.5) * 0.002,
         }
+        driverMarkerRef.current?.setPosition(newPos)
+        return newPos
       })
-    }, 2000)
+    }, 3000)
 
     return () => clearInterval(interval)
   }, [])
 
-  const handleSendMessage = () => {
+  const sendMessage = () => {
     if (!newMessage.trim()) return
-    setMessages([...messages, {
-      id: messages.length + 1,
-      sender: "rider",
-      text: newMessage,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }])
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now(), from: "rider", text: newMessage, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) },
+    ])
     setNewMessage("")
   }
 
-  const handleCall = () => {
-    setCallStatus("calling")
-    setTimeout(() => setCallStatus("connected"), 2000)
-  }
-
-  const handleRefund = () => {
-    setRefundStatus("processing")
-    setTimeout(() => setRefundStatus("submitted"), 1500)
-  }
-
   return (
-    <section id="live-tracking" className="py-24 bg-gradient-to-b from-secondary/20 to-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">
-            Live Ride Tracking
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
+    <section className="py-16 bg-gray-900">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Live Ride Tracking</h2>
+          <p className="text-gray-400 max-w-2xl mx-auto">
             Track your driver in real-time, chat, call safely, and manage your ride all in one place
           </p>
-        </motion.div>
+        </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* GPS Map Card */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="lg:col-span-2"
-          >
-            <Card className="bg-card border-border h-full">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <Navigation className="w-5 h-5 text-primary" />
-                    Live GPS Tracking
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                    </span>
-                    <span className="text-sm text-primary font-medium">Live</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {/* Real Google Maps */}
-                <GoogleMapLive
-                  pickup={DEMO_PICKUP}
-                  dropoff={DEMO_DROPOFF}
-                  driver={driverPosition}
-                  showRoute={true}
-                  height={350}
-                  className="rounded-xl"
-                />
+        <div className="grid lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          {/* Map Section */}
+          <div className="lg:col-span-2 bg-gray-800 rounded-2xl overflow-hidden border border-gray-700">
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <div className="flex items-center gap-2">
+                <Navigation className="w-5 h-5 text-green-400" />
+                <span className="font-semibold text-white">Live GPS Tracking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className="text-green-400 text-sm">Live</span>
+              </div>
+            </div>
 
-                {/* Ride Info Bar */}
-                <div className="mt-4 p-4 rounded-xl bg-secondary/50 border border-border">
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Ride ID</p>
-                      <p className="font-mono font-semibold text-foreground">GW-10234</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Status</p>
-                      <p className="font-semibold text-primary">DRIVER_EN_ROUTE</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Estimated Fare</p>
-                      <p className="font-semibold text-foreground">$24.75</p>
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 bg-primary/10 rounded-lg border border-primary/20">
-                      <DollarSign className="w-4 h-4 text-primary" />
-                      <span className="text-sm font-medium text-primary">AUTHORIZED</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+            <div
+              ref={mapRef}
+              className="w-full h-[350px]"
+              style={{ background: mapLoaded ? "transparent" : "#1f2937" }}
+            />
 
-          {/* Right Column - Chat, Call, Refund */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="space-y-6"
-          >
+            {/* Legend */}
+            <div className="p-3 bg-gray-800/80 border-t border-gray-700 flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full" />
+                <span className="text-gray-400 text-sm">Pickup</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-red-500 rounded-full" />
+                <span className="text-gray-400 text-sm">Dropoff</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-blue-500 rounded-full" />
+                <span className="text-gray-400 text-sm">Driver</span>
+              </div>
+            </div>
+
+            {/* Trip Info */}
+            <div className="p-4 bg-gray-800 border-t border-gray-700 grid grid-cols-4 gap-4">
+              <div>
+                <p className="text-gray-400 text-xs">Ride ID</p>
+                <p className="text-white font-semibold">{DEMO_TRIP.id}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Status</p>
+                <p className="text-green-400 font-semibold">{DEMO_TRIP.status}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-xs">Estimated Fare</p>
+                <p className="text-white font-semibold">${DEMO_TRIP.estimatedFare.toFixed(2)}</p>
+              </div>
+              <div>
+                <button className="px-4 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  AUTHORIZED
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-4">
             {/* Driver Info */}
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary/40 to-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
-                    JD
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-foreground">John Driver</h4>
-                    <p className="text-sm text-muted-foreground">Toyota Camry - ABC 123</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
-                      <span className="text-sm font-medium text-foreground">4.92</span>
-                      <span className="text-sm text-muted-foreground">(2,341 rides)</span>
-                    </div>
+            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                  {DEMO_TRIP.driver.initials}
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold">{DEMO_TRIP.driver.name}</h4>
+                  <p className="text-gray-400 text-sm">{DEMO_TRIP.driver.vehicle} - {DEMO_TRIP.driver.plate}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                    <span className="text-white font-medium">{DEMO_TRIP.driver.rating}</span>
+                    <span className="text-gray-500 text-sm">({DEMO_TRIP.driver.totalRides.toLocaleString()} rides)</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Chat Card */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base">
-                  <MessageCircle className="w-4 h-4 text-primary" />
-                  Chat with Driver
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="h-40 overflow-y-auto space-y-3 mb-4 pr-2">
-                  {messages.map((msg) => (
-                    <div
-                      key={msg.id}
-                      className={`flex ${msg.sender === "rider" ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
-                          msg.sender === "rider"
-                            ? "bg-primary text-primary-foreground"
-                            : msg.sender === "system"
-                            ? "bg-muted text-muted-foreground italic"
-                            : "bg-secondary text-foreground"
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Message your driver..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-                    className="h-10 bg-secondary border-border text-foreground"
-                  />
-                  <Button
-                    size="icon"
-                    onClick={handleSendMessage}
-                    className="h-10 w-10 bg-primary text-primary-foreground hover:bg-primary/90"
+            {/* Chat */}
+            <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+              <div className="p-3 border-b border-gray-700 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-gray-400" />
+                <span className="text-white font-medium text-sm">Chat with Driver</span>
+              </div>
+              <div className="h-40 overflow-y-auto p-3 space-y-2">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex ${msg.from === "rider" ? "justify-end" : "justify-start"}`}
                   >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Masked Call Card */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base">
-                  <PhoneCall className="w-4 h-4 text-primary" />
-                  Safe Calling
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3 mb-4">
-                  <Shield className="w-5 h-5 text-primary" />
-                  <span className="text-sm text-muted-foreground">Your number stays private</span>
-                </div>
-                <Button
-                  onClick={handleCall}
-                  disabled={callStatus !== "ready"}
-                  className={`w-full ${
-                    callStatus === "connected" 
-                      ? "bg-green-600 hover:bg-green-700" 
-                      : "bg-primary hover:bg-primary/90"
-                  } text-white`}
+                    <div
+                      className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
+                        msg.from === "rider"
+                          ? "bg-green-500 text-white"
+                          : "bg-gray-700 text-gray-200"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="p-3 border-t border-gray-700 flex gap-2">
+                <input
+                  type="text"
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  placeholder="Message your driver..."
+                  className="flex-1 bg-gray-700 border-none rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={sendMessage}
+                  className="p-2 bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
                 >
-                  {callStatus === "ready" && (
-                    <>
-                      <Phone className="w-4 h-4 mr-2" />
-                      Start Masked Call
-                    </>
-                  )}
-                  {callStatus === "calling" && (
-                    <>
-                      <span className="h-4 w-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Connecting...
-                    </>
-                  )}
-                  {callStatus === "connected" && (
-                    <>
-                      <Phone className="w-4 h-4 mr-2" />
-                      Connected
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-center text-muted-foreground mt-2">
-                  Status: {callStatus === "ready" ? "Ready" : callStatus === "calling" ? "Calling..." : "In Call"}
-                </p>
-              </CardContent>
-            </Card>
+                  <Navigation className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            </div>
 
-            {/* Refund Request Card */}
-            <Card className="bg-card border-border">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-foreground text-base">
-                  <RefreshCcw className="w-4 h-4 text-primary" />
-                  Request Refund
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div>
-                  <label className="text-sm text-muted-foreground">Reason</label>
-                  <Input
-                    placeholder="Enter reason..."
-                    value={refundReason}
-                    onChange={(e) => setRefundReason(e.target.value)}
-                    className="mt-1 h-10 bg-secondary border-border text-foreground"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-muted-foreground">Amount ($)</label>
-                  <Input
-                    type="number"
-                    value={refundAmount}
-                    onChange={(e) => setRefundAmount(e.target.value)}
-                    className="mt-1 h-10 bg-secondary border-border text-foreground"
-                  />
-                </div>
-                <Button
-                  onClick={handleRefund}
-                  disabled={refundStatus !== "none" || !refundReason}
-                  variant="outline"
-                  className="w-full border-destructive text-destructive hover:bg-destructive hover:text-white"
-                >
-                  {refundStatus === "none" && "Submit Refund"}
-                  {refundStatus === "processing" && (
-                    <>
-                      <span className="h-4 w-4 mr-2 border-2 border-destructive/30 border-t-destructive rounded-full animate-spin" />
-                      Processing...
-                    </>
-                  )}
-                  {refundStatus === "submitted" && "Refund Submitted"}
-                </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  Status: {refundStatus === "none" ? "No refund requested" : refundStatus === "processing" ? "Processing..." : "Submitted for review"}
-                </p>
-              </CardContent>
-            </Card>
-          </motion.div>
+            {/* Safe Calling */}
+            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <Phone className="w-4 h-4 text-green-400" />
+                <span className="text-white font-medium text-sm">Safe Calling</span>
+              </div>
+              <p className="text-gray-400 text-xs mb-3">Your number stays private</p>
+              <button className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-colors">
+                <Phone className="w-4 h-4" />
+                Start Masked Call
+              </button>
+              <p className="text-gray-500 text-xs text-center mt-2">Status: Ready</p>
+            </div>
+
+            {/* Request Refund */}
+            <div className="bg-gray-800 rounded-xl p-4 border border-gray-700">
+              <div className="flex items-center gap-2 mb-3">
+                <RefreshCw className="w-4 h-4 text-gray-400" />
+                <span className="text-white font-medium text-sm">Request Refund</span>
+              </div>
+              <input
+                type="text"
+                placeholder="Enter reason..."
+                className="w-full bg-gray-700 border-none rounded-lg px-3 py-2 text-white text-sm placeholder-gray-400 mb-2"
+              />
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-gray-400 text-sm">Amount ($)</span>
+                <input
+                  type="number"
+                  defaultValue="5.00"
+                  className="flex-1 bg-gray-700 border-none rounded-lg px-3 py-2 text-white text-sm"
+                />
+              </div>
+              <button className="w-full py-2 border border-red-500/50 text-red-400 rounded-lg font-medium text-sm hover:bg-red-500/10 transition-colors">
+                Submit Refund
+              </button>
+              <p className="text-gray-500 text-xs text-center mt-2">Status: No refund requested</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

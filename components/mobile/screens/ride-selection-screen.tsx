@@ -64,9 +64,9 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
   const [expandedRide, setExpandedRide] = useState<string | null>(selectedRide)
 
   return (
-    <div className="w-full min-h-screen bg-gray-950 flex flex-col">
+    <div className="w-full min-h-screen bg-white flex flex-col">
       {/* Status Bar */}
-      <div className="bg-gray-900 text-white px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-gray-800">
+      <div className="bg-gray-50 text-gray-900 px-4 py-2 flex items-center justify-between text-xs font-medium border-b border-green-200">
         <span>12:26</span>
         <div className="flex items-center gap-1">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -81,26 +81,26 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
       </div>
 
       {/* Header */}
-      <div className="bg-gray-900 border-b border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 border-b border-green-200 px-4 py-4">
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={onBack}
-            className="flex items-center gap-2 text-lime-400 hover:text-lime-300 transition-colors"
+            className="flex items-center gap-2 text-green-500 hover:text-lime-300 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="text-white font-bold">Choose a ride</h1>
-            <p className="text-gray-400 text-sm">From 456 Business Ave to Home</p>
+            <h1 className="text-gray-900 font-bold">Choose a ride</h1>
+            <p className="text-gray-600 text-sm">From 456 Business Ave to Home</p>
           </div>
         </div>
 
         {/* Trip Info */}
-        <div className="flex items-center gap-2 bg-gray-800/40 border border-gray-700 rounded-lg px-3 py-2 text-sm">
-          <MapPin className="w-4 h-4 text-lime-400" />
-          <span className="text-gray-300">2.5 miles</span>
-          <Clock className="w-4 h-4 text-lime-400 ml-2" />
-          <span className="text-gray-300">~12 min</span>
+        <div className="flex items-center gap-2 bg-green-50/40 border border-green-200 rounded-lg px-3 py-2 text-sm">
+          <MapPin className="w-4 h-4 text-green-500" />
+          <span className="text-gray-700">2.5 miles</span>
+          <Clock className="w-4 h-4 text-green-500 ml-2" />
+          <span className="text-gray-700">~12 min</span>
         </div>
       </div>
 
@@ -111,8 +111,8 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
             key={ride.id}
             className={`rounded-lg border transition-all ${
               selectedRide === ride.id
-                ? "bg-lime-400/10 border-lime-400 shadow-lg shadow-lime-400/20"
-                : "bg-gray-800/40 border-gray-700"
+                ? "bg-green-500/10 border-green-500 shadow-lg shadow-green-500/20"
+                : "bg-green-50/40 border-green-200"
             }`}
           >
             {/* Main Button */}
@@ -121,15 +121,15 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
                 setExpandedRide(expandedRide === ride.id ? null : ride.id)
                 onSelect?.(ride.id)
               }}
-              className="w-full px-4 py-4 flex items-center gap-4 hover:bg-gray-700/30 transition-colors"
+              className="w-full px-4 py-4 flex items-center gap-4 hover:bg-green-100/30 transition-colors"
             >
               {/* Car Icon */}
               <div className="text-4xl flex-shrink-0">{ride.icon}</div>
 
               {/* Details */}
               <div className="flex-1 text-left">
-                <h3 className="font-bold text-white text-lg">{ride.name}</h3>
-                <p className="text-sm text-gray-400 mb-1">{ride.description}</p>
+                <h3 className="font-bold text-gray-900 text-lg">{ride.name}</h3>
+                <p className="text-sm text-gray-600 mb-1">{ride.description}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500">
                   <div className="flex items-center gap-1">
                     <Clock className="w-3 h-3" />
@@ -150,13 +150,13 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
 
               {/* Price */}
               <div className="text-right flex-shrink-0">
-                <div className="font-bold text-lime-400 text-2xl">{ride.price}</div>
+                <div className="font-bold text-green-500 text-2xl">{ride.price}</div>
               </div>
             </button>
 
             {/* Expanded Details */}
             {expandedRide === ride.id && (
-              <div className="px-4 pb-4 border-t border-gray-700 space-y-4">
+              <div className="px-4 pb-4 border-t border-green-200 space-y-4">
                 {/* Info Banner */}
                 <div className="flex items-start gap-3 bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
                   <Info className="w-4 h-4 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -165,10 +165,10 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
 
                 {/* Features */}
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase">Features</p>
+                  <p className="text-xs font-semibold text-gray-600 uppercase">Features</p>
                   {ride.features.map((feature, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-sm text-gray-300">
-                      <div className="w-1 h-1 bg-lime-400 rounded-full" />
+                    <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                      <div className="w-1 h-1 bg-green-500 rounded-full" />
                       <span>{feature}</span>
                     </div>
                   ))}
@@ -177,7 +177,7 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
                 {/* Select Button */}
                 <button
                   onClick={() => onSelect?.(ride.id)}
-                  className="w-full bg-lime-400 hover:bg-lime-500 text-gray-950 font-bold py-3 px-4 rounded-lg transition-all duration-300 mt-2"
+                  className="w-full bg-green-500 hover:bg-lime-500 text-gray-950 font-bold py-3 px-4 rounded-lg transition-all duration-300 mt-2"
                 >
                   Select {ride.name}
                 </button>
@@ -190,27 +190,27 @@ export function RideSelectionScreen({ onBack, onSelect, selectedRide = "economy"
       </div>
 
       {/* Bottom Action - Sticky */}
-      <div className="bg-gray-900 border-t border-gray-800 px-4 py-4">
+      <div className="bg-gray-50 border-t border-green-200 px-4 py-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-gray-400 text-sm">Estimated fare</p>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-gray-600 text-sm">Estimated fare</p>
+            <p className="text-2xl font-bold text-gray-900">
               {RIDE_OPTIONS.find(r => r.id === selectedRide)?.price}
             </p>
           </div>
           <div className="flex gap-2">
-            <button className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <button className="flex-1 bg-green-50 hover:bg-green-100 text-gray-900 font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
               <DollarSign className="w-5 h-5" />
               Add payment
             </button>
-            <button className="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+            <button className="flex-1 bg-green-50 hover:bg-green-100 text-gray-900 font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
               <Calendar className="w-5 h-5" />
               Schedule
             </button>
           </div>
         </div>
 
-        <button className="w-full bg-lime-400 hover:bg-lime-500 text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
+        <button className="w-full bg-green-500 hover:bg-lime-500 text-gray-950 font-bold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105">
           Confirm {RIDE_OPTIONS.find(r => r.id === selectedRide)?.name}
         </button>
       </div>

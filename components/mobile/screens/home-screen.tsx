@@ -362,7 +362,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
           >
             <div className="w-3 h-3 bg-green-500 rounded-full" />
             <div className="flex-1 text-left">
-              <p className={`${pickup ? "text-gray-900" : "text-gray-400"}`}>
+              <p className={`${pickup ? "text-gray-900" : "text-gray-600"}`}>
                 {pickup || "Pickup location"}
               </p>
             </div>
@@ -376,7 +376,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
           >
             <div className="w-3 h-3 bg-red-500 rounded-full" />
             <div className="flex-1 text-left">
-              <p className={`${dropoff ? "text-gray-900" : "text-gray-400"}`}>
+              <p className={`${dropoff ? "text-gray-900" : "text-gray-600"}`}>
                 {dropoff || "Enter destination address"}
               </p>
             </div>
@@ -388,7 +388,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
               onClick={() => setScheduleMode("now")}
               className={`flex-1 py-3 rounded-xl font-medium transition-all ${
                 scheduleMode === "now"
-                  ? "bg-green-500 text-white"
+                  ? "bg-green-500 text-gray-900"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -398,7 +398,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
               onClick={() => setScheduleMode("later")}
               className={`flex-1 py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                 scheduleMode === "later"
-                  ? "bg-green-500 text-white"
+                  ? "bg-green-500 text-gray-900"
                   : "bg-gray-100 text-gray-700"
               }`}
             >
@@ -449,7 +449,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
               </div>
 
               {/* Book Button */}
-              <button className="w-full py-4 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors">
+              <button className="w-full py-4 bg-green-500 hover:bg-green-600 text-gray-900 font-semibold rounded-xl transition-colors">
                 Book {RIDE_TYPES.find(r => r.id === selectedRide)?.name} - ${RIDE_TYPES.find(r => r.id === selectedRide)?.price.toFixed(2)}
               </button>
             </>
@@ -480,7 +480,7 @@ export function HomeScreen({ activeRide, setActiveRide, isTracking, setIsTrackin
           {/* Search Input */}
           <div className="p-4 border-b border-gray-200">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
               <input
                 type="text"
                 value={searchQuery}

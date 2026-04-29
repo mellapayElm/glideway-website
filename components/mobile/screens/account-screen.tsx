@@ -54,7 +54,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <div className="bg-emerald-600 px-4 pt-4 pb-8">
-        <h1 className="text-xl font-bold text-white mb-4">Account</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-4">Account</h1>
         
         {/* Profile Card */}
         <div className="bg-white rounded-2xl p-4 shadow-lg">
@@ -104,7 +104,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                 <p className="font-medium text-gray-900">Saved Places</p>
                 <p className="text-sm text-gray-500">Home, Work, and more</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -123,7 +123,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                 <p className="font-medium text-gray-900">Safety Center</p>
                 <p className="text-sm text-gray-500">Emergency contacts, trip sharing</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -143,7 +143,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                 <p className="font-medium text-gray-900">Settings</p>
                 <p className="text-sm text-gray-500">Language, notifications</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -162,7 +162,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                 <p className="font-medium text-gray-900">Help & Support</p>
                 <p className="text-sm text-gray-500">FAQ, chat support</p>
               </div>
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
             </button>
@@ -170,7 +170,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
             {/* Become a Driver */}
             <button className="w-full flex items-center gap-4 p-4 bg-emerald-50 rounded-xl border border-emerald-200">
               <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
                 </svg>
               </div>
@@ -202,7 +202,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
             </button>
 
             {/* Version */}
-            <p className="text-center text-xs text-gray-400 pb-4">
+            <p className="text-center text-xs text-gray-600 pb-4">
               GlideWay v1.0.0
             </p>
           </div>
@@ -231,7 +231,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                     {USER_PROFILE.name[0]}
                   </div>
                   <button className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 text-gray-900" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
@@ -264,7 +264,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
               </div>
               <button 
                 onClick={() => setShowEditProfile(false)}
-                className="w-full py-4 bg-emerald-500 text-white font-semibold rounded-xl"
+                className="w-full py-4 bg-emerald-500 text-gray-900 font-semibold rounded-xl"
               >
                 Save Changes
               </button>
@@ -306,7 +306,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                     <p className="font-medium text-gray-900">{place.name}</p>
                     <p className="text-sm text-gray-500 truncate">{place.address}</p>
                   </div>
-                  <button className="text-gray-400">
+                  <button className="text-gray-600">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
@@ -425,7 +425,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
                       onClick={() => setSelectedLanguage(lang)}
                       className={`py-3 rounded-xl font-medium text-sm ${
                         selectedLanguage === lang
-                          ? "bg-emerald-500 text-white"
+                          ? "bg-emerald-500 text-gray-900"
                           : "bg-gray-100 text-gray-700"
                       }`}
                     >
@@ -479,7 +479,7 @@ export function AccountScreen({ onLogout }: AccountScreenProps) {
             <div className="p-4 space-y-3">
               <button className="w-full flex items-center gap-4 p-4 bg-emerald-50 rounded-xl">
                 <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                 </div>

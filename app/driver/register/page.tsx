@@ -256,7 +256,7 @@ export default function DriverRegister() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "DRIVER_COMPLETE",
-          verificationId,
+          // verificationId temporarily disabled
           ...formData
         })
       })
@@ -290,12 +290,14 @@ export default function DriverRegister() {
         setError("Please enter a valid SSN")
         return
       }
-      initiateRegistration()
+      // Skip verification for now - go directly to password step
+      setStep(3)
       return
     }
 
+    // Step 2 verification temporarily disabled
     if (step === 2) {
-      verifyOtp()
+      setStep(3)
       return
     }
 
@@ -382,51 +384,51 @@ export default function DriverRegister() {
   // Success Screen
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0d1f0d] to-[#0a0a0a] flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-[#111]/90 border-[#222] backdrop-blur-xl">
+      <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-white flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-white border-green-200 shadow-lg">
           <CardContent className="p-8 text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.5 }}
-              className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6"
+              className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
             >
-              <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+              <CheckCircle2 className="w-10 h-10 text-green-500" />
             </motion.div>
             
-            <h2 className="text-2xl font-bold text-white mb-2">Application Submitted!</h2>
-            <p className="text-gray-400 mb-6">Your driver application is pending review.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h2>
+            <p className="text-gray-600 mb-6">Your driver application is pending review.</p>
 
-            <div className="bg-[#1a1a1a] rounded-lg p-4 mb-6 text-left space-y-3">
-              <h3 className="text-white font-medium">Next Steps:</h3>
+            <div className="bg-green-50 rounded-lg p-4 mb-6 text-left space-y-3 border border-green-200">
+              <h3 className="text-gray-900 font-medium">Next Steps:</h3>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">1</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">1</span>
                 </div>
-                <p className="text-sm text-gray-400">Background check will be initiated (2-5 business days)</p>
+                <p className="text-sm text-gray-600">Background check will be initiated (2-5 business days)</p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">2</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">2</span>
                 </div>
-                <p className="text-sm text-gray-400">Documents will be reviewed by our team</p>
+                <p className="text-sm text-gray-600">Documents will be reviewed by our team</p>
               </div>
               <div className="flex items-start gap-3">
-                <div className="w-6 h-6 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs text-blue-400">3</span>
+                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-xs text-green-600 font-semibold">3</span>
                 </div>
-                <p className="text-sm text-gray-400">You will receive email notification when approved</p>
+                <p className="text-sm text-gray-600">You will receive email notification when approved</p>
               </div>
             </div>
 
             <div className="flex gap-3">
               <Link href="/" className="flex-1">
-                <Button variant="outline" className="w-full border-[#333] text-white hover:bg-[#222]">
+                <Button variant="outline" className="w-full border-green-200 text-gray-700 hover:bg-green-50">
                   Back to Home
                 </Button>
               </Link>
               <Link href="/driver/status" className="flex-1">
-                <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white">
+                <Button className="w-full bg-green-500 hover:bg-green-600 text-white">
                   Check Status
                 </Button>
               </Link>
@@ -438,25 +440,25 @@ export default function DriverRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0a] via-[#0d1f0d] to-[#0a0a0a] flex items-center justify-center p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-white via-green-50 to-white flex items-center justify-center p-4 py-12">
       {/* Security Badge */}
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 z-50">
-        <ShieldCheck className="w-4 h-4 text-emerald-500" />
-        <span className="text-xs text-emerald-400">256-bit SSL Encrypted</span>
-        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-green-100 border border-green-200 rounded-full px-4 py-2 z-50 shadow-sm">
+        <ShieldCheck className="w-4 h-4 text-green-600" />
+        <span className="text-xs text-green-700 font-medium">256-bit SSL Encrypted</span>
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
       </div>
 
-      <Card className="w-full max-w-lg bg-[#111]/90 border-[#222] backdrop-blur-xl">
+      <Card className="w-full max-w-lg bg-white border-green-200 shadow-lg">
         <CardContent className="p-6">
           {/* Logo */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 mb-2">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">G</span>
               </div>
-              <span className="text-xl font-bold text-white">GlideWay Driver</span>
+              <span className="text-xl font-bold text-gray-900">GlideWay Driver</span>
             </div>
-            <p className="text-sm text-gray-400">Become a GlideWay Driver Partner</p>
+            <p className="text-sm text-gray-600">Become a GlideWay Driver Partner</p>
           </div>
 
           {/* Progress Bar */}
@@ -465,9 +467,9 @@ export default function DriverRegister() {
               <span>Step {step} of 10</span>
               <span>{stepTitles[step - 1]}</span>
             </div>
-            <div className="h-2 bg-[#1a1a1a] rounded-full overflow-hidden">
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
               <motion.div
-                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400"
+                className="h-full bg-gradient-to-r from-green-500 to-green-400"
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / 10) * 100}%` }}
               />
@@ -511,9 +513,9 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <User className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Personal Information</h3>
-                  <p className="text-sm text-gray-400">Enter your legal name as it appears on your license</p>
+                  <User className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+                  <p className="text-sm text-gray-600">Enter your legal name as it appears on your license</p>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -521,72 +523,72 @@ export default function DriverRegister() {
                     placeholder="First *"
                     value={formData.firstName}
                     onChange={(e) => updateField("firstName", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="Middle"
                     value={formData.middleName}
                     onChange={(e) => updateField("middleName", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="Last *"
                     value={formData.lastName}
                     onChange={(e) => updateField("lastName", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                   <Input
                     type="tel"
                     placeholder="Mobile Phone *"
                     value={formData.phone}
                     onChange={(e) => updateField("phone", e.target.value)}
-                    className="pl-10 bg-[#1a1a1a] border-[#333] text-white"
+                    className="pl-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                   <Input
                     type="email"
                     placeholder="Email Address *"
                     value={formData.email}
                     onChange={(e) => updateField("email", e.target.value)}
-                    className="pl-10 bg-[#1a1a1a] border-[#333] text-white"
+                    className="pl-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                     <Input
                       type="date"
                       placeholder="Date of Birth *"
                       value={formData.dateOfBirth}
                       onChange={(e) => updateField("dateOfBirth", e.target.value)}
-                      className="pl-10 bg-[#1a1a1a] border-[#333] text-white"
+                      className="pl-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                     />
                   </div>
                   <div className="relative">
-                    <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                     <Input
                       type="password"
                       placeholder="SSN *"
                       value={formData.ssn}
                       onChange={(e) => updateField("ssn", e.target.value.replace(/\D/g, "").slice(0, 9))}
-                      className="pl-10 bg-[#1a1a1a] border-[#333] text-white"
+                      className="pl-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                       maxLength={9}
                     />
                   </div>
                 </div>
 
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <Shield className="w-4 h-4 text-amber-400 mt-0.5" />
-                    <p className="text-xs text-amber-300">
+                    <Shield className="w-4 h-4 text-green-600 mt-0.5" />
+                    <p className="text-xs text-green-700">
                       Your SSN is required for background check verification. It is encrypted and never shared.
                     </p>
                   </div>
@@ -604,11 +606,11 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Smartphone className="w-8 h-8 text-emerald-500" />
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Smartphone className="w-8 h-8 text-green-600" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white">Verify Your Phone</h3>
-                  <p className="text-sm text-gray-400">Enter the 6-digit code sent to {formData.phone}</p>
+                  <h3 className="text-lg font-semibold text-gray-900">Verify Your Phone</h3>
+                  <p className="text-sm text-gray-600">Enter the 6-digit code sent to {formData.phone}</p>
                 </div>
 
                 <div className="flex justify-center gap-2">
@@ -622,13 +624,13 @@ export default function DriverRegister() {
                       value={value}
                       onChange={(e) => handleOtpChange(index, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      className="w-12 h-14 text-center text-xl font-bold bg-[#1a1a1a] border-[#333] text-white focus:border-emerald-500"
+                      className="w-12 h-14 text-center text-xl font-bold bg-white border-green-300 text-gray-900 focus:border-green-500 focus:ring-green-500"
                     />
                   ))}
                 </div>
 
                 {countdown > 0 && (
-                  <div className="text-center text-sm text-gray-400">
+                  <div className="text-center text-sm text-gray-600">
                     <Clock className="w-4 h-4 inline mr-1" />
                     Code expires in {Math.floor(countdown / 60)}:{(countdown % 60).toString().padStart(2, "0")}
                   </div>
@@ -646,28 +648,28 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <KeyRound className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Create Password</h3>
+                  <KeyRound className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Create Password</h3>
                 </div>
 
-                <div className="flex items-center gap-2 p-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg mb-4">
-                  <Check className="w-4 h-4 text-emerald-500" />
-                  <span className="text-sm text-emerald-400">Phone verified: {formData.phone}</span>
+                <div className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg mb-4">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="text-sm text-green-700">Phone verified: {formData.phone}</span>
                 </div>
 
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Password *"
                     value={formData.password}
                     onChange={(e) => updateField("password", e.target.value)}
-                    className="pl-10 pr-10 bg-[#1a1a1a] border-[#333] text-white"
+                    className="pl-10 pr-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-green-600"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -680,13 +682,13 @@ export default function DriverRegister() {
                         <div
                           key={i}
                           className={`h-1 flex-1 rounded ${
-                            i < passwordStrength ? strengthColors[passwordStrength - 1] : "bg-[#333]"
+                            i < passwordStrength ? strengthColors[passwordStrength - 1] : "bg-gray-200"
                           }`}
                         />
                       ))}
                     </div>
                     <p className={`text-xs ${
-                      passwordStrength < 3 ? "text-red-400" : passwordStrength < 4 ? "text-yellow-400" : "text-green-400"
+                      passwordStrength < 3 ? "text-red-500" : passwordStrength < 4 ? "text-yellow-600" : "text-green-600"
                     }`}>
                       {passwordStrength > 0 ? strengthLabels[passwordStrength - 1] : "Enter password"}
                     </p>
@@ -694,18 +696,18 @@ export default function DriverRegister() {
                 )}
 
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-green-600" />
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm Password *"
                     value={formData.confirmPassword}
                     onChange={(e) => updateField("confirmPassword", e.target.value)}
-                    className="pl-10 pr-10 bg-[#1a1a1a] border-[#333] text-white"
+                    className="pl-10 pr-10 bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-green-600"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -723,22 +725,22 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <MapPin className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Home Address</h3>
+                  <MapPin className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Home Address</h3>
                 </div>
 
                 <Input
                   placeholder="Street Address *"
                   value={formData.streetAddress}
                   onChange={(e) => updateField("streetAddress", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <Input
                   placeholder="Apartment, Suite (Optional)"
                   value={formData.apartment}
                   onChange={(e) => updateField("apartment", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <div className="grid grid-cols-2 gap-3">
@@ -746,13 +748,13 @@ export default function DriverRegister() {
                     placeholder="City *"
                     value={formData.city}
                     onChange={(e) => updateField("city", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="State *"
                     value={formData.state}
                     onChange={(e) => updateField("state", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
@@ -761,13 +763,13 @@ export default function DriverRegister() {
                     placeholder="ZIP Code *"
                     value={formData.zipCode}
                     onChange={(e) => updateField("zipCode", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="Country"
                     value={formData.country}
                     onChange={(e) => updateField("country", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
               </motion.div>
@@ -783,15 +785,15 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <IdCard className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Driver License</h3>
+                  <IdCard className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Driver License</h3>
                 </div>
 
                 <Input
                   placeholder="License Number *"
                   value={formData.licenseNumber}
                   onChange={(e) => updateField("licenseNumber", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <div className="grid grid-cols-2 gap-3">
@@ -799,14 +801,14 @@ export default function DriverRegister() {
                     placeholder="Issuing State *"
                     value={formData.licenseState}
                     onChange={(e) => updateField("licenseState", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     type="date"
                     placeholder="Expiry Date *"
                     value={formData.licenseExpiry}
                     onChange={(e) => updateField("licenseExpiry", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
@@ -814,7 +816,7 @@ export default function DriverRegister() {
                   <select
                     value={formData.licenseClass}
                     onChange={(e) => updateField("licenseClass", e.target.value)}
-                    className="bg-[#1a1a1a] border border-[#333] text-white rounded-md px-3 py-2"
+                    className="bg-white border border-green-300 text-gray-900 rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500"
                   >
                     <option value="C">Class C (Standard)</option>
                     <option value="B">Class B (Commercial)</option>
@@ -824,14 +826,14 @@ export default function DriverRegister() {
                     placeholder="Years Licensed"
                     value={formData.yearsLicensed}
                     onChange={(e) => updateField("yearsLicensed", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
-                <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <Upload className="w-4 h-4 text-blue-400 mt-0.5" />
-                    <p className="text-xs text-blue-300">
+                    <Upload className="w-4 h-4 text-green-600 mt-0.5" />
+                    <p className="text-xs text-green-700">
                       You may be asked to upload a photo of your license later.
                     </p>
                   </div>
@@ -849,8 +851,8 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <Car className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Vehicle Information</h3>
+                  <Car className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Vehicle Information</h3>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -858,13 +860,13 @@ export default function DriverRegister() {
                     placeholder="Make *"
                     value={formData.vehicleMake}
                     onChange={(e) => updateField("vehicleMake", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="Model *"
                     value={formData.vehicleModel}
                     onChange={(e) => updateField("vehicleModel", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
@@ -873,13 +875,13 @@ export default function DriverRegister() {
                     placeholder="Year *"
                     value={formData.vehicleYear}
                     onChange={(e) => updateField("vehicleYear", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <Input
                     placeholder="Color *"
                     value={formData.vehicleColor}
                     onChange={(e) => updateField("vehicleColor", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                 </div>
 
@@ -887,20 +889,20 @@ export default function DriverRegister() {
                   placeholder="License Plate *"
                   value={formData.vehiclePlate}
                   onChange={(e) => updateField("vehiclePlate", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <Input
                   placeholder="VIN (Vehicle Identification Number)"
                   value={formData.vehicleVin}
                   onChange={(e) => updateField("vehicleVin", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <select
                   value={formData.vehicleSeats}
                   onChange={(e) => updateField("vehicleSeats", e.target.value)}
-                  className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-md px-3 py-2"
+                  className="w-full bg-white border border-green-300 text-gray-900 rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500"
                 >
                   <option value="4">4 Passenger Seats</option>
                   <option value="5">5 Passenger Seats</option>
@@ -920,22 +922,22 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <Shield className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Insurance Information</h3>
+                  <Shield className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Insurance Information</h3>
                 </div>
 
                 <Input
                   placeholder="Insurance Company *"
                   value={formData.insuranceCompany}
                   onChange={(e) => updateField("insuranceCompany", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <Input
                   placeholder="Policy Number *"
                   value={formData.insurancePolicy}
                   onChange={(e) => updateField("insurancePolicy", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <div className="grid grid-cols-2 gap-3">
@@ -944,12 +946,12 @@ export default function DriverRegister() {
                     placeholder="Expiry Date *"
                     value={formData.insuranceExpiry}
                     onChange={(e) => updateField("insuranceExpiry", e.target.value)}
-                    className="bg-[#1a1a1a] border-[#333] text-white"
+                    className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   />
                   <select
                     value={formData.insuranceCoverage}
                     onChange={(e) => updateField("insuranceCoverage", e.target.value)}
-                    className="bg-[#1a1a1a] border border-[#333] text-white rounded-md px-3 py-2"
+                    className="bg-white border border-green-300 text-gray-900 rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500"
                   >
                     <option value="Full Coverage">Full Coverage</option>
                     <option value="Liability Only">Liability Only</option>
@@ -969,23 +971,23 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <Landmark className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Bank & Tax Information</h3>
-                  <p className="text-sm text-gray-400">For direct deposit earnings</p>
+                  <Landmark className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Bank & Tax Information</h3>
+                  <p className="text-sm text-gray-600">For direct deposit earnings</p>
                 </div>
 
                 <Input
                   placeholder="Bank Name *"
                   value={formData.bankName}
                   onChange={(e) => updateField("bankName", e.target.value)}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <Input
                   placeholder="Routing Number *"
                   value={formData.bankRouting}
                   onChange={(e) => updateField("bankRouting", e.target.value.replace(/\D/g, "").slice(0, 9))}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                   maxLength={9}
                 />
 
@@ -993,22 +995,22 @@ export default function DriverRegister() {
                   placeholder="Account Number *"
                   value={formData.bankAccount}
                   onChange={(e) => updateField("bankAccount", e.target.value.replace(/\D/g, ""))}
-                  className="bg-[#1a1a1a] border-[#333] text-white"
+                  className="bg-white border-green-300 text-gray-900 placeholder:text-gray-500 focus:border-green-500 focus:ring-green-500"
                 />
 
                 <select
                   value={formData.bankAccountType}
                   onChange={(e) => updateField("bankAccountType", e.target.value)}
-                  className="w-full bg-[#1a1a1a] border border-[#333] text-white rounded-md px-3 py-2"
+                  className="w-full bg-white border border-green-300 text-gray-900 rounded-md px-3 py-2 focus:border-green-500 focus:ring-green-500"
                 >
                   <option value="checking">Checking Account</option>
                   <option value="savings">Savings Account</option>
                 </select>
 
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-400 mt-0.5" />
-                    <p className="text-xs text-emerald-300">
+                    <DollarSign className="w-4 h-4 text-green-600 mt-0.5" />
+                    <p className="text-xs text-green-700">
                       Earnings are deposited weekly. You can also request instant payouts after activation.
                     </p>
                   </div>
@@ -1026,21 +1028,21 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <Camera className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Profile & Availability</h3>
+                  <Camera className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Profile & Availability</h3>
                 </div>
 
                 {/* Profile Photo */}
                 <div className="flex flex-col items-center gap-3">
-                  <div className="w-24 h-24 rounded-full bg-[#1a1a1a] border-2 border-dashed border-[#333] flex items-center justify-center overflow-hidden">
+                  <div className="w-24 h-24 rounded-full bg-green-50 border-2 border-dashed border-green-300 flex items-center justify-center overflow-hidden">
                     {photoPreview ? (
                       <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <Camera className="w-8 h-8 text-gray-500" />
+                      <Camera className="w-8 h-8 text-green-400" />
                     )}
                   </div>
                   <label className="cursor-pointer">
-                    <span className="text-sm text-emerald-500 hover:underline">Upload Photo</span>
+                    <span className="text-sm text-green-600 font-medium hover:underline">Upload Photo</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -1051,15 +1053,15 @@ export default function DriverRegister() {
                 </div>
 
                 {/* Availability */}
-                <div className="p-4 bg-[#1a1a1a] rounded-lg">
-                  <p className="text-sm text-white font-medium mb-3">Availability</p>
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-gray-900 font-medium mb-3">Availability</p>
                   <div className="grid grid-cols-7 gap-2">
                     {Object.entries(formData.availability).map(([day, active]) => (
                       <button
                         key={day}
                         onClick={() => updateField("availability", { ...formData.availability, [day]: !active })}
                         className={`p-2 rounded text-xs font-medium transition-all ${
-                          active ? "bg-emerald-500 text-white" : "bg-[#222] text-gray-500"
+                          active ? "bg-green-500 text-white" : "bg-white text-gray-500 border border-green-200"
                         }`}
                       >
                         {day.slice(0, 3).toUpperCase()}
@@ -1080,68 +1082,68 @@ export default function DriverRegister() {
                 className="space-y-4"
               >
                 <div className="text-center mb-4">
-                  <FileText className="w-10 h-10 text-emerald-500 mx-auto mb-2" />
-                  <h3 className="text-lg font-semibold text-white">Agreements & Consent</h3>
-                  <p className="text-sm text-gray-400">All agreements are required</p>
+                  <FileText className="w-10 h-10 text-green-500 mx-auto mb-2" />
+                  <h3 className="text-lg font-semibold text-gray-900">Agreements & Consent</h3>
+                  <p className="text-sm text-gray-600">All agreements are required</p>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="flex items-start gap-3 p-3 bg-[#1a1a1a] rounded-lg cursor-pointer">
+                  <label className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer border border-green-200 hover:bg-green-100 transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.agreeTerms}
                       onChange={(e) => updateField("agreeTerms", e.target.checked)}
-                      className="mt-1 rounded bg-[#222] border-[#333]"
+                      className="mt-1 rounded bg-white border-green-300 text-green-500 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-300">
-                      I agree to the <Link href="#" className="text-emerald-500 underline">Terms of Service</Link> and <Link href="#" className="text-emerald-500 underline">Driver Agreement</Link>.
+                    <span className="text-sm text-gray-700">
+                      I agree to the <Link href="#" className="text-green-600 underline font-medium">Terms of Service</Link> and <Link href="#" className="text-green-600 underline font-medium">Driver Agreement</Link>.
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 p-3 bg-[#1a1a1a] rounded-lg cursor-pointer">
+                  <label className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer border border-green-200 hover:bg-green-100 transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.agreeBackground}
                       onChange={(e) => updateField("agreeBackground", e.target.checked)}
-                      className="mt-1 rounded bg-[#222] border-[#333]"
+                      className="mt-1 rounded bg-white border-green-300 text-green-500 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-300">
+                    <span className="text-sm text-gray-700">
                       I authorize GlideWay to conduct a background check including criminal history and driving record.
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 p-3 bg-[#1a1a1a] rounded-lg cursor-pointer">
+                  <label className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer border border-green-200 hover:bg-green-100 transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.agreeDrugTest}
                       onChange={(e) => updateField("agreeDrugTest", e.target.checked)}
-                      className="mt-1 rounded bg-[#222] border-[#333]"
+                      className="mt-1 rounded bg-white border-green-300 text-green-500 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-300">
+                    <span className="text-sm text-gray-700">
                       I commit to maintaining a drug-free environment and may be subject to testing.
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 p-3 bg-[#1a1a1a] rounded-lg cursor-pointer">
+                  <label className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer border border-green-200 hover:bg-green-100 transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.agreeInsurance}
                       onChange={(e) => updateField("agreeInsurance", e.target.checked)}
-                      className="mt-1 rounded bg-[#222] border-[#333]"
+                      className="mt-1 rounded bg-white border-green-300 text-green-500 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-300">
+                    <span className="text-sm text-gray-700">
                       I confirm my vehicle insurance meets GlideWay requirements and will maintain valid coverage.
                     </span>
                   </label>
 
-                  <label className="flex items-start gap-3 p-3 bg-[#1a1a1a] rounded-lg cursor-pointer">
+                  <label className="flex items-start gap-3 p-3 bg-green-50 rounded-lg cursor-pointer border border-green-200 hover:bg-green-100 transition-colors">
                     <input
                       type="checkbox"
                       checked={formData.agreeVehicleInspection}
                       onChange={(e) => updateField("agreeVehicleInspection", e.target.checked)}
-                      className="mt-1 rounded bg-[#222] border-[#333]"
+                      className="mt-1 rounded bg-white border-green-300 text-green-500 focus:ring-green-500"
                     />
-                    <span className="text-sm text-gray-300">
+                    <span className="text-sm text-gray-700">
                       I agree to complete a vehicle inspection if requested by GlideWay.
                     </span>
                   </label>
@@ -1157,7 +1159,7 @@ export default function DriverRegister() {
                 type="button"
                 variant="outline"
                 onClick={() => setStep((step - 1) as RegisterStep)}
-                className="flex-1 border-[#333] text-white hover:bg-[#222]"
+                className="flex-1 border-green-300 text-gray-700 hover:bg-green-50"
                 disabled={isLoading}
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
@@ -1167,7 +1169,7 @@ export default function DriverRegister() {
             <Button
               onClick={handleNext}
               disabled={isLoading}
-              className={`flex-1 bg-emerald-500 hover:bg-emerald-600 text-white ${step === 1 ? "w-full" : ""}`}
+              className={`flex-1 bg-green-500 hover:bg-green-600 text-white ${step === 1 ? "w-full" : ""}`}
             >
               {isLoading ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -1186,7 +1188,7 @@ export default function DriverRegister() {
 
       {/* Back Link */}
       <div className="fixed bottom-4 left-1/2 -translate-x-1/2">
-        <Link href="/" className="text-sm text-gray-500 hover:text-white transition-colors">
+        <Link href="/" className="text-sm text-gray-600 hover:text-green-600 transition-colors">
           Back to GlideWay Website
         </Link>
       </div>

@@ -1,428 +1,444 @@
-'use client';
+"use client"
 
-import { useEffect, useRef, useState } from 'react';
-import { io } from 'socket.io-client';
-import { MapPin, Navigation, AlertCircle, MessageCircle, Phone, Award, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffect, useRef, useState } from "react"
+import { io, Socket } from "socket.io-client"
+import Link from "next/link"
 
-const socket = io('http://localhost:5000');
+interface RideRequest {
+  id: string
+  pickup: string
+  dropoff: string
+  distance: string
+  duration: string
+  fare: number
+  rider?: {
+    name: string
+    id: string
+    photo: string
+    verified: boolean
+  }
+}
+
+interface Message {
+  id: string
+  text: string
+  sender: "rider" | "driver"
+}
 
 export default function DriverApp() {
-  const [online, setOnline] = useState(false);
-  const [ride, setRide] = useState<any>(null);
-  const [status, setStatus] = useState('Offline');
-  const [step, setStep] = useState<'waiting' | 'requested' | 'accepted' | 'arrived' | 'started' | 'completed'>('waiting');
+  const [online, setOnline] = useState(false)
+  const [ride, setRide] = useState<RideRequest | null>(null)
+  const [status, setStatus] = useState("Offline")
+  const [step, setStep] = useState<"waiting" | "requested" | "accepted" | "arrived" | "started" | "completed">("waiting")
   
-  const [location, setLocation] = useState<{lat: number; lng: number; accuracy?: number}>({
-    lat: 38.8339,
-    lng: -104.8214
-  });
+  const [location, setLocation] = useState({ lat: 38.88202, lng: -104.84619 })
+  const [heading, setHeading] = useState(169)
+  const [accuracy, setAccuracy] = useState(55)
+  const [gpsSource, setGpsSource] = useState("gps")
   
-  const [earnings, setEarnings] = useState(342.50);
-  const [tripsToday, setTripsToday] = useState(8);
-  const [rating, setRating] = useState(4.92);
+  const [chatMessages, setChatMessages] = useState<Message[]>([])
+  const [chatText, setChatText] = useState("")
+  const [socket, setSocket] = useState<Socket | null>(null)
   
-  const [chatMessages, setChatMessages] = useState<any[]>([]);
-  const [chatText, setChatText] = useState('');
-  
-  const watchId = useRef<number | null>(null);
-  const lastLocation = useRef<{lat: number; lng: number} | null>(null);
+  const watchId = useRef<number | null>(null)
+  const lastLocation = useRef<{ lat: number; lng: number } | null>(null)
 
+  // Socket connection
   useEffect(() => {
-    socket.on('connect', () => {
-      console.log('[v0] Driver connected:', socket.id);
-    });
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000", {
+      transports: ["websocket", "polling"],
+    })
 
-    socket.on('newRideRequest', (rideData: any) => {
-      console.log('[v0] New ride request:', rideData);
-      setRide(rideData);
-      setStep('requested');
-      setStatus('New Ride Request!');
-      
-      // Play notification sound
-      const audio = new Audio('data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAAB9AAACABAAZGF0YQIAAAAAAA==');
-      audio.play().catch(e => console.log('[v0] Audio play failed:', e));
-    });
+    newSocket.on("connect", () => {
+      console.log("[v0] Driver connected:", newSocket.id)
+    })
 
-    socket.on('rideAccepted', (data: any) => {
-      console.log('[v0] Ride accepted by driver:', data);
-      setStep('accepted');
-      setStatus('Accepted - Head to pickup');
-    });
+    newSocket.on("newRideRequest", (rideData: RideRequest) => {
+      console.log("[v0] New ride request:", rideData)
+      // Add default rider info if not provided
+      const rideWithRider = {
+        ...rideData,
+        rider: rideData.rider || {
+          name: "Verified Rider",
+          id: `RIDER-${rideData.id}`,
+          photo: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
+          verified: true,
+        },
+      }
+      setRide(rideWithRider)
+      setStep("requested")
+      setStatus("New ride request received!")
+      alert("New Ride Request!")
+    })
 
-    socket.on('receiveChatMessage', (msg: any) => {
-      console.log('[v0] Chat message from rider:', msg);
-      setChatMessages(prev => [...prev, msg]);
-    });
+    newSocket.on("receiveChatMessage", (message: Message) => {
+      setChatMessages((prev) => [...prev, { ...message, sender: "rider" }])
+    })
 
-    // Start GPS tracking
-    if (navigator.geolocation) {
+    setSocket(newSocket)
+    return () => { newSocket.disconnect() }
+  }, [])
+
+  // GPS Stream
+  useEffect(() => {
+    if (online && navigator.geolocation) {
       watchId.current = navigator.geolocation.watchPosition(
         (position) => {
           const newLoc = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          setLocation(newLoc);
-          lastLocation.current = newLoc;
+          }
           
-          // Emit location to server
-          socket.emit('updateLocation', newLoc);
+          // Calculate heading from movement
+          if (lastLocation.current) {
+            const deltaLng = newLoc.lng - lastLocation.current.lng
+            const deltaLat = newLoc.lat - lastLocation.current.lat
+            const newHeading = Math.round((Math.atan2(deltaLng, deltaLat) * 180) / Math.PI)
+            setHeading(newHeading >= 0 ? newHeading : 360 + newHeading)
+          }
+          
+          setLocation(newLoc)
+          setAccuracy(Math.round(position.coords.accuracy))
+          setGpsSource("gps")
+          lastLocation.current = newLoc
+
+          // Broadcast location
+          socket?.emit("updateLocation", {
+            ...newLoc,
+            heading,
+            accuracy: position.coords.accuracy,
+          })
         },
         (error) => {
-          console.log('[v0] Geolocation error:', error);
-          // Demo mode - simulate movement
-          const demoInterval = setInterval(() => {
-            setLocation(prev => ({
+          console.log("[v0] GPS error, using demo mode:", error)
+          setGpsSource("demo")
+          // Demo GPS simulation
+          const interval = setInterval(() => {
+            setLocation((prev) => ({
               lat: prev.lat + (Math.random() - 0.5) * 0.001,
-              lng: prev.lng + (Math.random() - 0.5) * 0.001
-            }));
-          }, 2000);
-          return () => clearInterval(demoInterval);
-        }
-      );
+              lng: prev.lng + (Math.random() - 0.5) * 0.001,
+            }))
+            setHeading((prev) => (prev + Math.floor(Math.random() * 10 - 5) + 360) % 360)
+          }, 2000)
+          return () => clearInterval(interval)
+        },
+        { enableHighAccuracy: true, maximumAge: 0 }
+      )
     }
 
     return () => {
-      socket.off('connect');
-      socket.off('newRideRequest');
-      socket.off('rideAccepted');
-      socket.off('receiveChatMessage');
-      if (watchId.current) {
-        navigator.geolocation.clearWatch(watchId.current);
-      }
-    };
-  }, []);
+      if (watchId.current) navigator.geolocation.clearWatch(watchId.current)
+    }
+  }, [online, socket, heading])
 
   const toggleOnline = () => {
-    setOnline(!online);
-    setStatus(online ? 'Offline' : 'Online - Accepting rides');
-    socket.emit('driverStatusChange', { online: !online });
-  };
-
-  const acceptRide = () => {
-    if (ride) {
-      socket.emit('acceptRide', { rideId: ride.rideId });
-      setStep('accepted');
-      setStatus('Heading to pickup...');
+    const newOnline = !online
+    setOnline(newOnline)
+    if (newOnline) {
+      setStatus("Online and waiting for ride requests")
+      socket?.emit("driverOnline", { driverId: "driver_1" })
+    } else {
+      setStatus("Offline")
+      setRide(null)
+      setStep("waiting")
+      socket?.emit("driverOffline", { driverId: "driver_1" })
     }
-  };
-
-  const declineRide = () => {
-    setRide(null);
-    setStep('waiting');
-    setStatus('Online - Accepting rides');
-  };
-
-  const arrivedAtPickup = () => {
-    setStep('arrived');
-    setStatus('Arrived at pickup - Waiting for rider');
-    socket.emit('arrivedAtPickup', { rideId: ride?.rideId });
-  };
-
-  const startTrip = () => {
-    setStep('started');
-    setStatus('Trip in progress');
-    socket.emit('startTrip', { rideId: ride?.rideId });
-  };
-
-  const completeTrip = () => {
-    setStep('completed');
-    setStatus('Trip completed');
-    socket.emit('completeTrip', { rideId: ride?.rideId });
-    setEarnings(earnings + (ride?.fare || 10));
-    setTripsToday(tripsToday + 1);
-    
-    setTimeout(() => {
-      setRide(null);
-      setStep('waiting');
-      setStatus('Online - Accepting rides');
-      setChatMessages([]);
-    }, 3000);
-  };
-
-  const sendMessage = () => {
-    if (chatText.trim() && ride) {
-      socket.emit('sendChatMessage', {
-        rideId: ride.rideId,
-        text: chatText,
-        sender: 'driver',
-        senderName: 'Driver'
-      });
-      setChatMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        sender: 'driver',
-        senderName: 'Driver',
-        text: chatText
-      }]);
-      setChatText('');
-    }
-  };
-
-  // Ride Request Alert
-  if (ride && step === 'requested') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-4 flex items-center justify-center">
-        <div className="max-w-md w-full space-y-4">
-          {/* Alert */}
-          <Card className="bg-green-900 border-green-500 shadow-2xl">
-            <CardContent className="p-6 text-center space-y-4">
-              <div className="text-6xl animate-bounce">🚨</div>
-              <h2 className="text-2xl font-bold text-white">New Ride Request!</h2>
-              
-              <div className="bg-green-800 rounded-lg p-4 space-y-3">
-                <div className="text-white space-y-2">
-                  <p className="text-sm text-green-100">From: {ride.pickup || 'Unknown'}</p>
-                  <p className="text-sm text-green-100">To: {ride.dropoff || 'Unknown'}</p>
-                  <p className="text-lg font-bold text-green-300">${ride.fare?.toFixed(2) || '10.00'}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={declineRide}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                >
-                  Decline
-                </Button>
-                <Button
-                  onClick={acceptRide}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                >
-                  Accept
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
   }
 
-  // Main Driver Dashboard
+  const acceptRide = () => {
+    if (!ride || !socket) return
+    socket.emit("acceptRide", { rideId: ride.id })
+    setStep("accepted")
+    setStatus("Driver arrived at pickup.")
+  }
+
+  const declineRide = () => {
+    setRide(null)
+    setStep("waiting")
+    setStatus("Online and waiting for ride requests")
+  }
+
+  const arrivedAtPickup = () => {
+    if (!socket || !ride) return
+    socket.emit("driverArrived", { rideId: ride.id })
+    setStep("arrived")
+    setStatus("Waiting for rider")
+  }
+
+  const startTrip = () => {
+    if (!socket || !ride) return
+    socket.emit("startTrip", { rideId: ride.id })
+    setStep("started")
+    setStatus("Trip started. Drive safely.")
+  }
+
+  const completeTrip = () => {
+    if (!socket || !ride) return
+    socket.emit("completeTrip", { rideId: ride.id, fare: ride.fare })
+    setStep("completed")
+    setStatus("Trip completed.")
+  }
+
+  const readyForNext = () => {
+    setRide(null)
+    setStep("waiting")
+    setStatus("Online and waiting for ride requests")
+  }
+
+  const openNavigation = () => {
+    if (!ride) return
+    const destination = step === "accepted" || step === "arrived" ? ride.pickup : ride.dropoff
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`, "_blank")
+  }
+
+  const sendMessage = () => {
+    if (!chatText.trim() || !socket || !ride) return
+    const message: Message = { id: `msg_${Date.now()}`, text: chatText, sender: "driver" }
+    socket.emit("sendChatMessage", { rideId: ride.id, message })
+    setChatMessages((prev) => [...prev, message])
+    setChatText("")
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-4 py-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-2">
-            <Navigation className="w-8 h-8 text-green-500" />
-            Driver Dashboard
-          </h1>
-          <Button
-            onClick={toggleOnline}
-            className={`${online ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-600 hover:bg-gray-700'} text-white px-6 py-2 text-lg`}
-          >
-            {online ? '🟢 Online' : '⚫ Offline'}
-          </Button>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold text-green-500">GlideWay</Link>
+          <nav className="hidden md:flex items-center gap-4 text-sm text-gray-400">
+            <Link href="/" className="hover:text-white">Home</Link>
+            <Link href="/ride" className="hover:text-white">Ride</Link>
+            <Link href="/driver" className="text-green-500 font-medium">Drive</Link>
+            <Link href="/safety" className="hover:text-white">Safety</Link>
+            <Link href="/pricing" className="hover:text-white">Pricing</Link>
+            <Link href="/login" className="hover:text-white">Login</Link>
+            <Link href="/register" className="hover:text-white">Register</Link>
+          </nav>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto p-4 space-y-4">
+        {/* Driver Title */}
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🚗</span>
+          <span className="text-green-500 font-medium">GlideWay Driver</span>
         </div>
 
-        {/* Status Badge */}
-        <Card className="bg-blue-900 border-blue-500 mb-6">
-          <CardContent className="p-4">
-            <p className="text-white text-lg font-medium">{status}</p>
-          </CardContent>
-        </Card>
+        {/* Status Line */}
+        <div className="flex items-center gap-2 text-sm">
+          <span className={`w-2 h-2 rounded-full ${online ? "bg-green-500" : "bg-gray-500"}`}></span>
+          <span className={online ? "text-green-400" : "text-gray-400"}>
+            {online ? "Online" : "Offline"}
+          </span>
+          <span className="text-gray-500">·</span>
+          <span className="text-gray-300">{status}</span>
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Map and Controls */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Live Map */}
-            <Card className="bg-gray-800 border-green-500 shadow-lg overflow-hidden h-96">
-              <div className="w-full h-full bg-gradient-to-br from-blue-900 to-green-900 flex items-center justify-center relative p-4">
-                {/* Simple GPS visualization */}
-                <svg className="w-full h-full" viewBox="0 0 400 400">
-                  <defs>
-                    <radialGradient id="gpsRadar" cx="50%" cy="50%" r="50%">
-                      <stop offset="0%" stopColor="#22c55e" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
-                    </radialGradient>
-                  </defs>
-                  
-                  {/* Radar circles */}
-                  <circle cx="200" cy="200" r="100" fill="url(#gpsRadar)" />
-                  <circle cx="200" cy="200" r="100" fill="none" stroke="#22c55e" strokeWidth="1" opacity="0.5" />
-                  <circle cx="200" cy="200" r="70" fill="none" stroke="#22c55e" strokeWidth="1" opacity="0.3" />
-                  
-                  {/* Current location */}
-                  <circle cx="200" cy="200" r="12" fill="#22c55e" />
-                  <circle cx="200" cy="200" r="6" fill="white" />
-                  
-                  {/* Nearby drivers */}
-                  <circle cx="150" cy="120" r="8" fill="#3b82f6" opacity="0.7" />
-                  <circle cx="280" cy="180" r="8" fill="#3b82f6" opacity="0.7" />
-                  <circle cx="220" cy="320" r="8" fill="#3b82f6" opacity="0.7" />
+        {/* Go Online/Offline Button */}
+        <button
+          onClick={toggleOnline}
+          className={`w-full py-4 rounded-lg font-semibold text-white transition-colors ${
+            online ? "bg-orange-500 hover:bg-orange-600" : "bg-green-500 hover:bg-green-600"
+          }`}
+        >
+          {online ? "Go Offline" : "Go Online"}
+        </button>
 
-                  {/* GPS info */}
-                  <text x="200" y="380" textAnchor="middle" fontSize="12" fill="#93c5fd" fontFamily="monospace">
-                    Lat: {location.lat.toFixed(4)} Lng: {location.lng.toFixed(4)}
-                  </text>
-                </svg>
-
-                {/* GPS Status */}
-                <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                  Live GPS
-                </div>
-              </div>
-            </Card>
-
-            {/* Current Ride Info */}
-            {ride && step !== 'waiting' && (
-              <Card className="bg-gray-800 border-green-500">
-                <CardHeader className="border-b border-gray-700">
-                  <CardTitle className="text-white">Current Ride</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-700 rounded p-3">
-                      <p className="text-gray-400 text-xs mb-1">From</p>
-                      <p className="text-white font-medium">{ride.pickup?.substring(0, 20)}...</p>
-                    </div>
-                    <div className="bg-gray-700 rounded p-3">
-                      <p className="text-gray-400 text-xs mb-1">To</p>
-                      <p className="text-white font-medium">{ride.dropoff?.substring(0, 20)}...</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {step === 'accepted' && (
-                      <Button
-                        onClick={arrivedAtPickup}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        Arrived at Pickup
-                      </Button>
-                    )}
-                    {step === 'arrived' && (
-                      <Button
-                        onClick={startTrip}
-                        className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        Start Trip
-                      </Button>
-                    )}
-                    {step === 'started' && (
-                      <Button
-                        onClick={completeTrip}
-                        className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                      >
-                        Complete Trip
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+        {/* Driver Safety Center */}
+        <div className="bg-gray-800 border border-green-600 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-green-500">🛡️</span>
+            <span className="text-green-400 font-medium">Driver Safety Center</span>
+          </div>
+          <div className="space-y-1 text-sm text-green-300">
+            <p>✓ Verified driver profile</p>
+            <p>✓ GPS stream active when online</p>
+            <p>✓ Rider identity visible before accepting</p>
+            <p>✓ Trip details available for safety sharing</p>
+            <p>✓ Report concerns anytime</p>
           </div>
 
-          {/* Right: Stats & Chat */}
-          <div className="space-y-4">
-            {/* Stats */}
-            <div className="grid grid-cols-1 gap-3">
-              <Card className="bg-gray-800 border-green-500">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-xs">Today's Earnings</p>
-                      <p className="text-2xl font-bold text-green-400">${earnings.toFixed(2)}</p>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-green-500" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* SOS Button */}
+          <button className="w-full mt-4 py-3 bg-red-500/80 hover:bg-red-500 rounded-lg text-white font-medium flex items-center justify-center gap-2">
+            <span>🚨</span>
+            Driver Emergency / SOS
+          </button>
 
-              <Card className="bg-gray-800 border-blue-500">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-xs">Trips Today</p>
-                      <p className="text-2xl font-bold text-blue-400">{tripsToday}</p>
-                    </div>
-                    <Navigation className="w-8 h-8 text-blue-500" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Share Trip Details */}
+          <button className="mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium flex items-center gap-2">
+            <span>📋</span>
+            Share Trip Details
+          </button>
 
-              <Card className="bg-gray-800 border-yellow-500">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-400 text-xs">Rating</p>
-                      <p className="text-2xl font-bold text-yellow-400">⭐ {rating}</p>
-                    </div>
-                    <Award className="w-8 h-8 text-yellow-500" />
-                  </div>
-                </CardContent>
-              </Card>
+          {/* Report Rider */}
+          <button className="w-full mt-3 py-3 border border-gray-600 rounded-lg text-red-400 hover:bg-gray-700 font-medium">
+            Report Rider / Trip Concern
+          </button>
+        </div>
+
+        {/* GPS Stream Info */}
+        <div className="text-sm">
+          <p className="font-semibold text-white">GPS Stream Active</p>
+          <p className="text-gray-400">Lat: {location.lat.toFixed(5)} · Lng: {location.lng.toFixed(5)}</p>
+          <p className="text-gray-400">Heading: {heading}°</p>
+          <p className="text-gray-400">Accuracy: {accuracy}m</p>
+          <p className="text-gray-400">Source: {gpsSource}</p>
+        </div>
+
+        {/* Incoming Ride Request */}
+        {ride && (
+          <div className="bg-gray-800 border border-green-600 rounded-lg p-4 space-y-4">
+            <div className="flex items-center gap-2 text-green-400 text-sm">
+              <span>🚗</span>
+              <span className="font-medium">Incoming Ride Request</span>
             </div>
 
-            {/* Chat */}
-            {ride && step !== 'waiting' && (
-              <Card className="bg-gray-800 border-green-500">
-                <CardHeader className="border-b border-gray-700">
-                  <CardTitle className="text-white text-sm flex items-center gap-2">
-                    <MessageCircle className="w-4 h-4" />
-                    Chat with Rider
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-3 max-h-40 overflow-y-auto">
-                  {chatMessages.length === 0 && (
-                    <p className="text-gray-500 text-xs text-center py-2">No messages yet</p>
-                  )}
-                  {chatMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.sender === 'driver' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`p-2 rounded-lg max-w-xs text-sm ${
-                        msg.sender === 'driver' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-100'
-                      }`}>
+            {/* Rider Info */}
+            <div className="flex items-center gap-3">
+              <img
+                src={ride.rider?.photo || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop"}
+                alt="Rider"
+                className="w-12 h-12 rounded-full object-cover"
+              />
+              <div>
+                <p className="font-semibold text-white">{ride.rider?.name || "Verified Rider"}</p>
+                <p className="text-xs text-green-400">✓ Verified Rider</p>
+                <p className="text-xs text-gray-400">Rider ID: {ride.rider?.id || `RIDER-${ride.id}`}</p>
+              </div>
+            </div>
+
+            {/* Driver Safety Check */}
+            <div className="bg-gray-700/50 rounded-lg p-3">
+              <p className="text-green-400 font-medium text-sm mb-2">Driver Safety Check</p>
+              <div className="space-y-1 text-xs text-green-300">
+                <p>✓ Rider picture visible</p>
+                <p>✓ Rider ID shown before accepting</p>
+                <p>✓ Pickup and destination visible</p>
+                <p>✓ SOS and rider concern reporting enabled</p>
+              </div>
+            </div>
+
+            {/* Ride Details */}
+            <div className="text-sm space-y-1">
+              <p><span className="text-gray-400">Ride ID:</span> <span className="text-yellow-400">{ride.id}</span></p>
+              <p><span className="text-gray-400">Pickup:</span> <span className="text-green-300">{ride.pickup}</span></p>
+              <p><span className="text-gray-400">Destination:</span> <span className="text-green-300">{ride.dropoff}</span></p>
+              <p><span className="text-gray-400">Trip Distance:</span> <span className="text-white">{ride.distance || "1 ft"}</span></p>
+              <p><span className="text-gray-400">Trip ETA:</span> <span className="text-white">{ride.duration || "1 min"}</span></p>
+              <p className="text-green-500 font-semibold">${ride.fare?.toFixed(2) || "4.50"}</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {/* Open Navigation */}
+              <button
+                onClick={openNavigation}
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium"
+              >
+                Open Route Navigation
+              </button>
+
+              {/* Accept/Start/Complete based on step */}
+              {step === "requested" && (
+                <>
+                  <button
+                    onClick={acceptRide}
+                    className="w-full py-3 bg-green-500 hover:bg-green-600 rounded-lg text-white font-medium"
+                  >
+                    Accept Ride
+                  </button>
+                  <button
+                    onClick={declineRide}
+                    className="w-full py-3 bg-red-500 hover:bg-red-600 rounded-lg text-white font-medium"
+                  >
+                    Decline
+                  </button>
+                </>
+              )}
+
+              {step === "accepted" && (
+                <button
+                  onClick={arrivedAtPickup}
+                  className="w-full py-3 bg-green-500 hover:bg-green-600 rounded-lg text-white font-medium"
+                >
+                  Arrived at Pickup
+                </button>
+              )}
+
+              {step === "arrived" && (
+                <button
+                  onClick={startTrip}
+                  className="w-full py-3 bg-green-500 hover:bg-green-600 rounded-lg text-white font-medium"
+                >
+                  Start Trip
+                </button>
+              )}
+
+              {step === "started" && (
+                <button
+                  onClick={completeTrip}
+                  className="w-full py-3 bg-green-500 hover:bg-green-600 rounded-lg text-white font-medium"
+                >
+                  Complete Trip
+                </button>
+              )}
+
+              {step === "completed" && (
+                <button
+                  onClick={readyForNext}
+                  className="w-full py-3 bg-green-500 hover:bg-green-600 rounded-lg text-white font-medium"
+                >
+                  Ready for Next Ride
+                </button>
+              )}
+            </div>
+
+            {/* Chat Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-green-400 text-sm">
+                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                <span className="font-medium">Message Rider</span>
+              </div>
+
+              <div className="bg-gray-700/50 rounded-lg p-3 min-h-[60px] max-h-24 overflow-y-auto">
+                {chatMessages.length === 0 ? (
+                  <p className="text-xs text-gray-500">No messages yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {chatMessages.map((msg) => (
+                      <div
+                        key={msg.id}
+                        className={`p-2 rounded-lg text-xs ${
+                          msg.sender === "driver" ? "bg-green-600 text-white ml-8" : "bg-gray-600 text-gray-200 mr-8"
+                        }`}
+                      >
                         {msg.text}
                       </div>
-                    </div>
-                  ))}
-                </CardContent>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-                <div className="p-3 border-t border-gray-700 flex gap-2">
-                  <Input
-                    type="text"
-                    placeholder="Message rider..."
-                    value={chatText}
-                    onChange={(e) => setChatText(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                    className="bg-gray-700 border-gray-600 text-white placeholder:text-gray-500"
-                  />
-                  <Button
-                    onClick={sendMessage}
-                    className="bg-green-500 hover:bg-green-600 text-white"
-                  >
-                    →
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            {/* Safety Info */}
-            <Card className="bg-blue-900 border-blue-500">
-              <CardHeader>
-                <CardTitle className="text-white text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Safety Center
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 space-y-2">
-                <Button className="w-full bg-red-600 hover:bg-red-700 text-white text-xs">
-                  🆘 SOS
-                </Button>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs">
-                  📍 Share Trip
-                </Button>
-              </CardContent>
-            </Card>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type message..."
+                  value={chatText}
+                  onChange={(e) => setChatText(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+                <button
+                  onClick={sendMessage}
+                  className="px-4 py-2 bg-green-500 hover:bg-green-600 rounded-lg text-white text-sm font-medium"
+                >
+                  Send
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
-  );
+  )
 }

@@ -1,5 +1,5 @@
-// Google Maps API Loader with your paid API key
-const GOOGLE_MAPS_API_KEY = "AIzaSyCH4JRnP4zS-dSKAcDwtaz0hREGExtHOuo"
+// Google Maps API Loader - uses environment variable
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""
 
 let isLoading = false
 let isLoaded = false

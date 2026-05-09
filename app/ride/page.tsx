@@ -1,451 +1,752 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef } from "react"
-import { GoogleMap, useJsApiLoader, DirectionsRenderer, Marker } from "@react-google-maps/api"
-import { io, Socket } from "socket.io-client"
-import Link from "next/link"
+import { useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
+import {
+  LoadScript,
+  GoogleMap,
+  DirectionsRenderer,
+  Autocomplete,
+  Marker,
+} from "@react-google-maps/api";
 
-const libraries: ("places")[] = ["places"]
+const socket = io("http://localhost:5000");
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "100%",
-}
-
-const defaultCenter = { lat: 38.8339, lng: -104.8214 }
-
-interface Message {
-  id: string
-  text: string
-  sender: "rider" | "driver"
-}
+const center = { lat: 38.8339, lng: -104.8214 };
+const libraries: "places"[] = ["places"];
 
 export default function RidePage() {
-  const [pickup, setPickup] = useState("")
-  const [dropoff, setDropoff] = useState("")
-  const [rideType, setRideType] = useState("Standard")
-  const [directions, setDirections] = useState<google.maps.DirectionsResult | null>(null)
-  const [distance, setDistance] = useState("")
-  const [duration, setDuration] = useState("")
-  const [fare, setFare] = useState(0)
-  const [rideId, setRideId] = useState("")
-  const [status, setStatus] = useState<"idle" | "calculated" | "requested" | "accepted" | "arrived" | "started" | "completed">("idle")
-  const [statusMessage, setStatusMessage] = useState("Enter pickup and destination")
-  const [eta, setEta] = useState("")
-  const [nearbyDrivers, setNearbyDrivers] = useState(1)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [driverLocation, setDriverLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [socket, setSocket] = useState<Socket | null>(null)
-  const [mapCenter, setMapCenter] = useState(defaultCenter)
+  const [pickup, setPickup] = useState("");
+  const [dropoff, setDropoff] = useState("");
+  const [rideType, setRideType] = useState("Standard");
+  const [directions, setDirections] = useState<any>(null);
+  const [distance, setDistance] = useState("");
+  const [duration, setDuration] = useState("");
+  const [fare, setFare] = useState<number | null>(null);
+  const [message, setMessage] = useState("");
 
-  const [driver] = useState({
-    name: "Berhane H.",
-    car: "Black Toyota Camry",
-    plate: "GLD-2026",
-    photo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-  })
+  const [rideStatus, setRideStatus] = useState("Ready to ride");
+  const [statusIcon, setStatusIcon] = useState("🚘");
+  const [step, setStep] = useState("requested");
 
-  const pickupRef = useRef<HTMLInputElement>(null)
-  const dropoffRef = useRef<HTMLInputElement>(null)
+  const [driverLocation, setDriverLocation] = useState<any>(null);
+  const [smoothDriverLocation, setSmoothDriverLocation] = useState<any>(null);
+  const [driverInfo, setDriverInfo] = useState<any>(null);
+  const [nearbyDrivers, setNearbyDrivers] = useState<any[]>([]);
+  const [activeRideId, setActiveRideId] = useState("");
+  const [liveEta, setLiveEta] = useState("Waiting for driver");
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
-    libraries,
-  })
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatText, setChatText] = useState("");
 
-  // Socket connection
-  useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000", {
-      transports: ["websocket", "polling"],
-    })
+  const pickupRef = useRef<any>(null);
+  const dropoffRef = useRef<any>(null);
+  function calculateDriverEta(driver: any) {
+  if (!driver?.lat || !driver?.lng) return;
 
-    newSocket.on("connect", () => {
-      console.log("[v0] Rider connected to socket")
-    })
+  const service = new window.google.maps.DistanceMatrixService();
 
-    newSocket.on("rideAccepted", () => {
-      setStatus("accepted")
-      setStatusMessage("Driver accepted your ride and is heading to pickup")
-      setEta("Driver is on the way")
-    })
+  service.getDistanceMatrix(
+    {
+      origins: [
+        {
+          lat: Number(driver.lat),
+          lng: Number(driver.lng),
+        },
+      ],
+      destinations: [pickup || center],
+      travelMode: window.google.maps.TravelMode.DRIVING,
+      unitSystem: window.google.maps.UnitSystem.IMPERIAL,
+    },
+    (response: any, status: any) => {
+      if (status !== "OK") return;
 
-    newSocket.on("driverArrived", () => {
-      setStatus("arrived")
-      setStatusMessage("Driver has arrived at your pickup location")
-      setEta("Driver has arrived")
-    })
+      const element = response?.rows?.[0]?.elements?.[0];
 
-    newSocket.on("tripStarted", () => {
-      setStatus("started")
-      setStatusMessage("Trip started")
-      setEta("Trip in progress")
-    })
-
-    newSocket.on("tripCompleted", () => {
-      setStatus("completed")
-      setStatusMessage("Trip completed")
-      setEta("Completed")
-    })
-
-    newSocket.on("driverLocation", (location: { lat: number; lng: number }) => {
-      setDriverLocation(location)
-    })
-
-    newSocket.on("receiveChatMessage", (message: Message) => {
-      setMessages((prev) => [...prev, { ...message, sender: "driver" }])
-    })
-
-    setSocket(newSocket)
-    return () => { newSocket.disconnect() }
-  }, [])
-
-  // Setup Google Places Autocomplete
-  useEffect(() => {
-    if (isLoaded && pickupRef.current && dropoffRef.current) {
-      const pickupAuto = new google.maps.places.Autocomplete(pickupRef.current, { types: ["address"] })
-      const dropoffAuto = new google.maps.places.Autocomplete(dropoffRef.current, { types: ["address"] })
-
-      pickupAuto.addListener("place_changed", () => {
-        const place = pickupAuto.getPlace()
-        if (place?.formatted_address) setPickup(place.formatted_address)
-      })
-
-      dropoffAuto.addListener("place_changed", () => {
-        const place = dropoffAuto.getPlace()
-        if (place?.formatted_address) setDropoff(place.formatted_address)
-      })
+      if (element?.status === "OK") {
+        setLiveEta(element.duration.text);
+        setMessage(
+          `Nearest driver is ${element.distance.text} away · ETA ${element.duration.text}`
+        );
+      }
     }
-  }, [isLoaded])
+  );
+}
+  useEffect(() => {
+    socket.off("connect");
+    socket.off("driverLocation");
+    socket.off("rideAccepted");
+    socket.off("driverArrived");
+    socket.off("tripStarted");
+    socket.off("tripCompleted");
+    socket.off("receiveChatMessage");
 
-  const calculateRoute = async () => {
-    if (!pickup || !dropoff || !isLoaded) return
+    socket.on("connect", () => {
+      console.log("✅ Rider connected:", socket.id);
+    });
 
-    const directionsService = new google.maps.DirectionsService()
-    
-    try {
-      const result = await directionsService.route({
+    socket.on("driverLocation", (driver) => {
+      setDriverLocation(driver);
+      setDriverInfo(driver);
+      setSmoothDriverLocation((current: any) => current || driver);
+      setLiveEta("Driver is moving toward you");
+      calculateDriverEta(driver);
+    });
+
+    socket.on("rideAccepted", (data) => {
+      setDriverInfo(data.driver);
+      setStep("accepted");
+      setRideStatus("Driver accepted your ride and is heading to pickup");
+      setStatusIcon("✅");
+      setLiveEta("Driver is on the way");
+      setMessage("Your driver is on the way.");
+    });
+
+    socket.on("driverArrived", () => {
+      setStep("arrived");
+      setRideStatus("Driver has arrived at your pickup location");
+      setStatusIcon("📍");
+      setLiveEta("Driver has arrived");
+      setMessage("Please meet your driver safely.");
+    });
+
+    socket.on("tripStarted", () => {
+      setStep("started");
+      setRideStatus("Trip started");
+      setStatusIcon("🚗");
+      setLiveEta("Trip in progress");
+      setMessage("Enjoy your GlideWay ride.");
+    });
+
+    socket.on("tripCompleted", () => {
+      setStep("completed");
+      setRideStatus("Trip completed");
+      setStatusIcon("🎉");
+      setLiveEta("Completed");
+      setMessage("Thank you for riding with GlideWay.");
+    });
+
+    socket.on("receiveChatMessage", (msg) => {
+      setChatMessages((prev) => {
+        if (prev.find((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+    });
+
+    async function loadNearbyDrivers() {
+      try {
+        const res = await fetch("http://localhost:5000/drivers/nearby");
+        const data = await res.json();
+
+        if (data.success) {
+          setNearbyDrivers(data.drivers || []);
+        }
+      } catch (error) {
+        console.error("Nearby drivers error:", error);
+      }
+    }
+
+    loadNearbyDrivers();
+    const nearbyInterval = setInterval(loadNearbyDrivers, 3000);
+
+    return () => {
+      clearInterval(nearbyInterval);
+      socket.off("connect");
+      socket.off("driverLocation");
+      socket.off("rideAccepted");
+      socket.off("driverArrived");
+      socket.off("tripStarted");
+      socket.off("tripCompleted");
+      socket.off("receiveChatMessage");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!driverLocation || !smoothDriverLocation) return;
+
+    const interval = setInterval(() => {
+      setSmoothDriverLocation((current: any) => {
+        if (!current) return driverLocation;
+
+        return {
+          ...driverLocation,
+          lat:
+            Number(current.lat) +
+            (Number(driverLocation.lat) - Number(current.lat)) * 0.2,
+          lng:
+            Number(current.lng) +
+            (Number(driverLocation.lng) - Number(current.lng)) * 0.2,
+        };
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [driverLocation, smoothDriverLocation]);
+
+  const steps = ["requested", "accepted", "arrived", "started", "completed"];
+  const currentStepIndex = steps.indexOf(step);
+
+  function sendChatMessage() {
+    if (!chatText.trim()) return;
+
+    if (!activeRideId) {
+      setMessage("Please request a ride first before sending a message.");
+      return;
+    }
+
+    const chatMessage = {
+      id: "msg_" + Date.now(),
+      rideId: activeRideId,
+      sender: "rider",
+      senderName: "Rider",
+      text: chatText,
+      time: new Date().toISOString(),
+    };
+
+    setChatMessages((current) => [...current, chatMessage]);
+    socket.emit("sendChatMessage", chatMessage);
+    setChatText("");
+  }
+
+  function onPickupPlaceChanged() {
+    const place = pickupRef.current?.getPlace();
+    if (place?.formatted_address) setPickup(place.formatted_address);
+    else if (place?.name) setPickup(place.name);
+  }
+
+  function onDropoffPlaceChanged() {
+    const place = dropoffRef.current?.getPlace();
+    if (place?.formatted_address) setDropoff(place.formatted_address);
+    else if (place?.name) setDropoff(place.name);
+  }
+
+  function calculateRoute() {
+    if (!pickup || !dropoff) {
+      setMessage("Please enter pickup and drop-off locations.");
+      return;
+    }
+
+    const service = new window.google.maps.DirectionsService();
+
+    service.route(
+      {
         origin: pickup,
         destination: dropoff,
-        travelMode: google.maps.TravelMode.DRIVING,
-      })
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result: any, status: any) => {
+        if (status === "OK") {
+          setDirections(result);
 
-      setDirections(result)
-      
-      const route = result.routes[0]
-      if (route?.legs[0]) {
-        const leg = route.legs[0]
-        setDistance(leg.distance?.text || "")
-        setDuration(leg.duration?.text || "")
-        
-        const distanceValue = leg.distance?.value || 0
-        const miles = distanceValue / 1609.34
-        const baseRates: Record<string, number> = { Standard: 2.5, Comfort: 3.0, XL: 3.5, Premium: 4.0 }
-        const calculatedFare = 4.50 + miles * baseRates[rideType]
-        setFare(Math.round(calculatedFare * 100) / 100)
+          const leg = result.routes[0].legs[0];
+          setDistance(leg.distance.text);
+          setDuration(leg.duration.text);
 
-        if (leg.start_location) {
-          setMapCenter({ lat: leg.start_location.lat(), lng: leg.start_location.lng() })
+          const miles = leg.distance.value / 1609.34;
+          const baseFare = 4.5;
+          const perMile =
+            rideType === "Premium"
+              ? 3.5
+              : rideType === "Comfort"
+              ? 2.75
+              : rideType === "Family"
+              ? 3.0
+              : 2.1;
+
+          setFare(Number((baseFare + miles * perMile).toFixed(2)));
+          setStep("requested");
+          setRideStatus("Route calculated. Ready to request your ride.");
+          setStatusIcon("🛣️");
+          setLiveEta(leg.duration.text);
+          setMessage("Route calculated successfully.");
+        } else {
+          setMessage("Route not found. Please choose addresses from autocomplete.");
         }
-
-        setStatus("calculated")
-        setStatusMessage("Route calculated. Ready to request your ride.")
-        setEta(leg.duration?.text || "")
       }
-    } catch (error) {
-      console.error("Error calculating route:", error)
-      setStatusMessage("Could not calculate route. Please check addresses.")
-    }
+    );
   }
 
-  const requestRide = () => {
-    if (!socket || status === "idle") return
-
-    const newRideId = `ride_${Date.now()}`
-    setRideId(newRideId)
-
-    socket.emit("newRideRequest", {
-      id: newRideId,
-      pickup,
-      dropoff,
-      rideType,
-      fare,
-      distance,
-      duration,
-    })
-
-    setStatus("requested")
-    setStatusMessage("Looking for nearby drivers...")
-    setEta("Finding driver...")
-  }
-
-  const sendMessage = () => {
-    if (!newMessage.trim() || !socket) return
-
-    const message: Message = {
-      id: `msg_${Date.now()}`,
-      text: newMessage,
-      sender: "rider",
+  async function requestRide() {
+    if (!pickup || !dropoff) {
+      setMessage("Please enter pickup and drop-off locations.");
+      return;
     }
 
-    socket.emit("sendChatMessage", { rideId, message })
-    setMessages((prev) => [...prev, message])
-    setNewMessage("")
-  }
+    try {
+      setStep("requested");
+      setRideStatus("Searching for the nearest GlideWay driver");
+      setStatusIcon("🔎");
+      setLiveEta("Searching nearby drivers");
 
-  const progressSteps = ["Requested", "Accepted", "Arrived", "Started", "Completed"]
-  const stepIndex = { idle: -1, calculated: -1, requested: 0, accepted: 1, arrived: 2, started: 3, completed: 4 }[status]
+      const res = await fetch("http://localhost:5000/rides/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pickup,
+          dropoff,
+          pickupAddress: pickup,
+          dropoffAddress: dropoff,
+          rideType,
+          distance,
+          eta: duration,
+          estimatedFare: fare,
+          fare,
+        }),
+      });
 
-  const getStatusIcon = () => {
-    if (status === "completed") return "bg-green-600"
-    if (status === "arrived") return "bg-orange-500"
-    if (status === "accepted") return "bg-blue-500"
-    return "bg-green-500"
+      const data = await res.json();
+
+      if (!data.success) {
+        setMessage(data.message || "Ride request failed.");
+        setRideStatus("Ride request failed");
+        setStatusIcon("⚠️");
+        return;
+      }
+
+      setActiveRideId(data.ride.rideId);
+      setRideStatus("Ride requested. Waiting for driver confirmation.");
+      setStatusIcon("📲");
+      setLiveEta("Waiting for driver confirmation");
+      setMessage(`Ride requested successfully. Ride ID: ${data.ride.rideId}`);
+    } catch {
+      setRideStatus("Backend connection failed");
+      setStatusIcon("⚠️");
+      setLiveEta("Unavailable");
+      setMessage("Backend connection failed. Make sure backend is running.");
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold text-green-600">GlideWay</Link>
-          <nav className="hidden md:flex items-center gap-4">
-            <Link href="/" className="text-gray-600 hover:text-gray-900 px-3 py-1">Home</Link>
-            <Link href="/ride" className="bg-green-600 text-white px-4 py-1.5 rounded text-sm font-medium">Ride</Link>
-            <Link href="/driver" className="text-gray-600 hover:text-gray-900 px-3 py-1">Drive</Link>
-            <Link href="/safety" className="text-gray-600 hover:text-gray-900 px-3 py-1">Safety</Link>
-            <Link href="/pricing" className="text-gray-600 hover:text-gray-900 px-3 py-1">Pricing</Link>
-            <Link href="/login" className="text-gray-600 hover:text-gray-900 px-3 py-1">Login</Link>
-            <Link href="/register" className="text-gray-600 hover:text-gray-900 px-3 py-1">Register</Link>
-          </nav>
-        </div>
-      </header>
+    <main style={pageStyle}>
+      <LoadScript
+        googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY as string}
+        libraries={libraries}
+      >
+        <div style={layoutStyle}>
+          <div style={panelStyle}>
+            <h1 style={titleStyle}>Ride with GlideWay</h1>
 
-      <div className="max-w-7xl mx-auto p-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Panel - Booking Form */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h1 className="text-xl font-semibold text-green-700 mb-4">Ride with GlideWay</h1>
-
-            {/* Status Banner */}
-            {status !== "idle" && (
-              <div className="flex items-center gap-3 p-3 rounded-lg mb-4 bg-green-50 border border-green-200">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getStatusIcon()}`}>
-                  {status === "completed" ? (
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">{statusMessage}</p>
-                  <p className="text-xs text-gray-600">ETA: {eta}</p>
-                </div>
+            <div style={statusCard}>
+              <div style={statusIconBox}>{statusIcon}</div>
+              <div>
+                <h2 style={statusTitle}>{rideStatus}</h2>
+                <p style={statusText}>ETA: {liveEta}</p>
               </div>
-            )}
+            </div>
 
-            {/* Progress Tracker */}
-            {stepIndex >= 0 && (
-              <div className="flex items-center justify-between mb-5 px-1 border-b border-gray-200 pb-4">
-                {progressSteps.map((step, index) => (
-                  <div key={step} className="flex flex-col items-center">
-                    <div className={`w-2 h-2 rounded-full mb-1 ${index <= stepIndex ? "bg-green-500" : "bg-gray-300"}`} />
-                    <span className={`text-xs ${index <= stepIndex ? "text-green-600 font-medium" : "text-gray-400"}`}>
-                      {step}
-                    </span>
+            <div style={progressWrap}>
+              {steps.map((s, i) => (
+                <div
+                  key={s}
+                  style={{
+                    flex: 1,
+                    textAlign: "center",
+                    color: i <= currentStepIndex ? "#16a34a" : "#9ca3af",
+                    fontWeight: i === currentStepIndex ? "800" : "600",
+                  }}
+                >
+                  ●
+                  <div style={{ fontSize: "12px", textTransform: "capitalize" }}>
+                    {s}
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ))}
+            </div>
 
-            {/* Driver Info Card */}
-            {stepIndex >= 0 && (
-              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg mb-4 border border-gray-200">
-                <img 
-                  src={driver.photo}
-                  alt={driver.name}
-                  className="w-12 h-12 rounded-full object-cover"
+            {driverInfo && (
+              <div style={driverCard}>
+                <img
+                  src={driverInfo.photo || "https://randomuser.me/api/portraits/men/32.jpg"}
+                  alt="Driver"
+                  style={driverPhoto}
                 />
                 <div>
-                  <p className="font-medium text-gray-900">{driver.name}</p>
-                  <p className="text-sm text-gray-500">{driver.car}</p>
-                  <p className="text-sm font-semibold text-gray-700">Plate: {driver.plate}</p>
+                  <h3 style={{ margin: 0, color: "#111827" }}>
+                    {driverInfo.name || "GlideWay Driver"}
+                  </h3>
+                  <p style={{ margin: "5px 0", color: "#374151" }}>
+                    {driverInfo.color || "Black"} {driverInfo.car || "Vehicle"}
+                  </p>
+                  <p style={{ margin: 0, color: "#166534", fontWeight: "800" }}>
+                    Plate: {driverInfo.plate || "N/A"}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Pickup Input */}
-            <div className="mb-3">
+            <Autocomplete
+              onLoad={(autocomplete) => (pickupRef.current = autocomplete)}
+              onPlaceChanged={onPickupPlaceChanged}
+            >
               <input
-                ref={pickupRef}
-                type="text"
-                placeholder="7770 Milton E Proby Pkwy, Colorado Springs, CO 80916, USA"
+                placeholder="Enter pickup location"
                 value={pickup}
                 onChange={(e) => setPickup(e.target.value)}
-                className="w-full px-4 py-3 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 text-sm"
+                style={inputStyle}
               />
-            </div>
+            </Autocomplete>
 
-            {/* Dropoff Input */}
-            <div className="mb-3">
+            <Autocomplete
+              onLoad={(autocomplete) => (dropoffRef.current = autocomplete)}
+              onPlaceChanged={onDropoffPlaceChanged}
+            >
               <input
-                ref={dropoffRef}
-                type="text"
-                placeholder="8500 Pena Blvd, Denver, CO 80249, USA"
+                placeholder="Enter drop-off location"
                 value={dropoff}
                 onChange={(e) => setDropoff(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 text-sm"
+                style={inputStyle}
               />
-            </div>
+            </Autocomplete>
 
-            {/* Ride Type Selector */}
-            <div className="mb-4">
-              <select
-                value={rideType}
-                onChange={(e) => setRideType(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-900 text-sm"
-              >
-                <option value="Standard">Standard</option>
-                <option value="Comfort">Comfort</option>
-                <option value="XL">XL</option>
-                <option value="Premium">Premium</option>
-              </select>
-            </div>
-
-            {/* Calculate Route Button */}
-            <button
-              onClick={calculateRoute}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-lg mb-4 transition-colors text-sm"
+            <select
+              value={rideType}
+              onChange={(e) => setRideType(e.target.value)}
+              style={inputStyle}
             >
-              Calculate Route &amp; Fare
+              <option>Standard</option>
+              <option>Comfort</option>
+              <option>Family</option>
+              <option>Premium</option>
+            </select>
+
+            <button onClick={calculateRoute} style={buttonStyle}>
+              Calculate Route & Fare
             </button>
 
-            {/* Route Info */}
-            {distance && (
-              <div className="mb-4 space-y-1">
-                <p className="text-sm">
-                  <span className="font-semibold text-green-700">Distance:</span>{" "}
-                  <span className="text-blue-600">{distance}</span>
-                </p>
-                <p className="text-sm">
-                  <span className="font-semibold text-green-700">Estimated Time:</span>{" "}
-                  <span className="text-blue-600">{duration}</span>
-                </p>
-                <p className="text-sm">
-                  <span className="font-semibold text-green-700">Estimated Fare:</span>{" "}
-                  <span className="text-gray-900">${fare.toFixed(2)}</span>
-                </p>
+            {fare !== null && (
+              <div style={estimateBox}>
+                <p><b>Distance:</b> {distance}</p>
+                <p><b>Estimated Time:</b> {duration}</p>
+                <p><b>Estimated Fare:</b> ${fare.toFixed(2)}</p>
               </div>
             )}
 
-            {/* Request Ride Button */}
-            <button
-              onClick={requestRide}
-              disabled={status === "idle"}
-              className="w-full bg-green-800 hover:bg-green-900 disabled:bg-gray-400 text-white font-semibold py-3 rounded-lg mb-4 transition-colors text-sm"
-            >
+            <button onClick={requestRide} style={requestButtonStyle}>
               Request Ride
             </button>
 
-            {/* Active Ride Info */}
-            {rideId && (
-              <p className="text-sm text-yellow-700 mb-2">
-                <span className="font-semibold">Active Ride:</span> {rideId}
-              </p>
+            {activeRideId && (
+              <div style={rideIdBox}>
+                <b>Active Ride:</b> {activeRideId}
+              </div>
             )}
 
-            {/* Nearby Drivers */}
-            <p className="text-sm font-semibold text-green-700 mb-4">
-              Nearby drivers: <span className="text-blue-600">{nearbyDrivers}</span>
-            </p>
+            <div style={nearbyBox}>
+              Nearby drivers: <b>{nearbyDrivers.length}</b>
+            </div>
 
-            {/* Chat Section */}
-            <div className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-700 mb-2 flex items-center gap-2 text-sm">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                Message Your Driver
-              </h3>
-              <p className="text-xs text-gray-500 mb-3">
-                {messages.length === 0 ? "No messages yet. Send a quick note to your driver." : ""}
-              </p>
-              
-              <div className="max-h-24 overflow-y-auto mb-3 space-y-2">
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`p-2 rounded-lg text-xs ${
-                      msg.sender === "rider" ? "bg-green-100 text-green-900 ml-8" : "bg-gray-100 text-gray-900 mr-8"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
+            <div style={chatBox}>
+              <div style={chatHeader}>💬 Message Your Driver</div>
+
+              <div style={chatMessagesBox}>
+                {chatMessages.length === 0 ? (
+                  <p style={{ color: "#6b7280", fontSize: "14px" }}>
+                    No messages yet. Send a quick note to your driver.
+                  </p>
+                ) : (
+                  chatMessages.map((msg, index) => (
+                    <div
+                      key={`${msg.id}-${index}`}
+                      style={{
+                        display: "flex",
+                        justifyContent:
+                          msg.sender === "rider" ? "flex-end" : "flex-start",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          maxWidth: "75%",
+                          padding: "10px 12px",
+                          borderRadius: "14px",
+                          background:
+                            msg.sender === "rider" ? "#166534" : "#e5e7eb",
+                          color: msg.sender === "rider" ? "#ffffff" : "#111827",
+                          fontSize: "14px",
+                        }}
+                      >
+                        <b>{msg.senderName}</b>
+                        <div>{msg.text}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
 
-              <div className="flex gap-2">
+              <div style={chatInputRow}>
                 <input
-                  type="text"
+                  value={chatText}
+                  onChange={(e) => setChatText(e.target.value)}
                   placeholder="Type message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-xs text-gray-900"
+                  style={chatInput}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") sendChatMessage();
+                  }}
                 />
-                <button
-                  onClick={sendMessage}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-xs font-medium transition-colors"
-                >
+                <button onClick={sendChatMessage} style={chatButton}>
                   Send
                 </button>
               </div>
             </div>
 
-            {/* Footer Message */}
-            <p className="text-sm text-green-700 mt-4">
-              {status === "completed" ? "Thank you for riding with GlideWay." :
-               status === "started" ? "Enjoy your GlideWay ride." :
-               status === "arrived" ? "Please meet your driver safely." :
-               status === "calculated" ? "Route calculated successfully." : ""}
-            </p>
+            {message && <p style={messageStyle}>{message}</p>}
           </div>
 
-          {/* Right Panel - Google Map */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden h-[650px]">
-            {isLoaded ? (
-              <GoogleMap
-                mapContainerStyle={mapContainerStyle}
-                center={mapCenter}
-                zoom={10}
-                options={{
-                  zoomControl: true,
-                  streetViewControl: false,
-                  mapTypeControl: true,
-                  fullscreenControl: true,
+          <GoogleMap
+            mapContainerStyle={mapStyle}
+            center={
+              smoothDriverLocation
+                ? {
+                    lat: Number(smoothDriverLocation.lat),
+                    lng: Number(smoothDriverLocation.lng),
+                  }
+                : nearbyDrivers[0]
+                ? {
+                    lat: Number(nearbyDrivers[0].lat),
+                    lng: Number(nearbyDrivers[0].lng),
+                  }
+                : center
+            }
+            zoom={13}
+          >
+            {directions && <DirectionsRenderer directions={directions} />}
+
+            {nearbyDrivers.map((driver) => (
+              <Marker
+                key={driver.id || driver.driverId}
+                position={{
+                  lat: Number(driver.lat),
+                  lng: Number(driver.lng),
                 }}
-              >
-                {directions && <DirectionsRenderer directions={directions} />}
-                {driverLocation && (
-                  <Marker
-                    position={driverLocation}
-                    icon={{ url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png" }}
-                  />
-                )}
-              </GoogleMap>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading map...</p>
-                </div>
-              </div>
+                title={`${driver.name || "GlideWay Driver"} nearby`}
+                label="🚗"
+              />
+            ))}
+
+            {smoothDriverLocation && (
+              <Marker
+                position={{
+                  lat: Number(smoothDriverLocation.lat),
+                  lng: Number(smoothDriverLocation.lng),
+                }}
+                title="Assigned GlideWay Driver"
+                label="🚘"
+              />
             )}
-          </div>
+          </GoogleMap>
         </div>
-      </div>
-    </div>
-  )
+      </LoadScript>
+    </main>
+  );
 }
+
+const pageStyle: React.CSSProperties = {
+  padding: "40px",
+  background: "#f9fafb",
+  minHeight: "100vh",
+};
+
+const layoutStyle: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: "20px",
+};
+
+const panelStyle: React.CSSProperties = {
+  background: "#ffffff",
+  padding: "28px",
+  borderRadius: "20px",
+  boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
+};
+
+const titleStyle: React.CSSProperties = {
+  color: "#166534",
+  fontSize: "32px",
+  marginBottom: "16px",
+};
+
+const statusCard: React.CSSProperties = {
+  display: "flex",
+  gap: "16px",
+  alignItems: "center",
+  padding: "18px",
+  borderRadius: "18px",
+  background: "linear-gradient(135deg, #dcfce7, #eff6ff)",
+  border: "1px solid #bbf7d0",
+  marginBottom: "12px",
+};
+
+const progressWrap: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  marginBottom: "16px",
+  padding: "12px",
+  background: "#f1f5f9",
+  borderRadius: "14px",
+};
+
+const statusIconBox: React.CSSProperties = {
+  width: "54px",
+  height: "54px",
+  borderRadius: "16px",
+  background: "#166534",
+  color: "#ffffff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: "26px",
+};
+
+const statusTitle: React.CSSProperties = {
+  margin: 0,
+  color: "#14532d",
+  fontSize: "18px",
+};
+
+const statusText: React.CSSProperties = {
+  margin: "6px 0 0",
+  color: "#374151",
+  fontSize: "14px",
+  fontWeight: "700",
+};
+
+const driverCard: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "14px",
+  padding: "16px",
+  borderRadius: "16px",
+  background: "#f0fdf4",
+  border: "1px solid #bbf7d0",
+  marginBottom: "16px",
+};
+
+const driverPhoto: React.CSSProperties = {
+  width: "64px",
+  height: "64px",
+  borderRadius: "50%",
+  objectFit: "cover",
+  border: "3px solid #16a34a",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "14px",
+  marginTop: "12px",
+  borderRadius: "12px",
+  border: "1px solid #d1d5db",
+  fontSize: "16px",
+  color: "#111827",
+  background: "#ffffff",
+  outline: "none",
+};
+
+const buttonStyle: React.CSSProperties = {
+  width: "100%",
+  marginTop: "15px",
+  padding: "14px",
+  background: "#166534",
+  color: "white",
+  border: "none",
+  borderRadius: "12px",
+  fontWeight: "800",
+  cursor: "pointer",
+};
+
+const requestButtonStyle: React.CSSProperties = {
+  width: "100%",
+  marginTop: "15px",
+  padding: "17px",
+  background: "#14532d",
+  color: "white",
+  border: "none",
+  borderRadius: "14px",
+  fontWeight: "900",
+  fontSize: "17px",
+  cursor: "pointer",
+};
+
+const estimateBox: React.CSSProperties = {
+  marginTop: "16px",
+  padding: "16px",
+  borderRadius: "14px",
+  background: "#ecfdf5",
+  color: "#111827",
+};
+
+const rideIdBox: React.CSSProperties = {
+  marginTop: "14px",
+  padding: "12px",
+  borderRadius: "12px",
+  background: "#fefce8",
+  color: "#713f12",
+};
+
+const nearbyBox: React.CSSProperties = {
+  marginTop: "14px",
+  padding: "12px",
+  borderRadius: "12px",
+  background: "#eff6ff",
+  color: "#1e40af",
+  fontWeight: "800",
+};
+
+const chatBox: React.CSSProperties = {
+  marginTop: "18px",
+  padding: "14px",
+  borderRadius: "18px",
+  background: "#f8fafc",
+  border: "1px solid #dbeafe",
+};
+
+const chatHeader: React.CSSProperties = {
+  fontWeight: "900",
+  color: "#14532d",
+  marginBottom: "10px",
+};
+
+const chatMessagesBox: React.CSSProperties = {
+  minHeight: "120px",
+  maxHeight: "220px",
+  overflowY: "auto",
+  padding: "10px",
+  borderRadius: "14px",
+  background: "#ffffff",
+};
+
+const chatInputRow: React.CSSProperties = {
+  display: "flex",
+  gap: "8px",
+  marginTop: "10px",
+};
+
+const chatInput: React.CSSProperties = {
+  flex: 1,
+  padding: "12px",
+  borderRadius: "12px",
+  border: "1px solid #d1d5db",
+  color: "#111827",
+  background: "#ffffff",
+};
+
+const chatButton: React.CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: "12px",
+  border: "none",
+  background: "#166534",
+  color: "#ffffff",
+  fontWeight: "800",
+  cursor: "pointer",
+};
+
+const messageStyle: React.CSSProperties = {
+  marginTop: "14px",
+  color: "#166534",
+  fontWeight: "800",
+};
+
+const mapStyle: React.CSSProperties = {
+  width: "100%",
+  height: "720px",
+  borderRadius: "20px",
+};
